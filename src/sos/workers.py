@@ -8,6 +8,7 @@ import os
 import signal
 import time
 import pickle
+import uuid
 from typing import Any, Dict, Optional
 
 import zmq
@@ -93,16 +94,13 @@ class SoS_Worker(mp.Process):
 
     A worker also connects to the master controller, which has two main ports, one for
     push (e.g. signature) to controller, and one for request information from controller.
-    These ports are fixed so they are the same for all channels.
-
-
-
+    These port are fixed so they are the same for all channels.
     '''
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None,
+    def __init__(self,
+                 config: Optional[Dict[str, Any]] = None,
                  **kwargs) -> None:
         '''
-
         config:
             values for command line options
 
@@ -120,9 +118,10 @@ class SoS_Worker(mp.Process):
         self.config = config
         self.local_ip = get_localhost_ip()
 
-        # there can be multiple jobs for this worker, each using their own port and socket
-        self._master_sockets = []
-        self._master_ports = []
+        # there can be multiple jobs for this worker, each using their own ID
+        # but share the same master socket in PAIR MODE
+        self._slot_ids = []
+
         # current runner, which can be a runner or True if the runner has completed
         self._runners = []
         # env index, which contains sos_dict for each runner
@@ -140,11 +139,12 @@ class SoS_Worker(mp.Process):
             idx for idx, runner in enumerate(self._runners) if runner is True
         ]
 
-    def available_ports(self):
-        # when a runner is completed, its port becomes available and can
+    def available_slots(self):
+        # when a runner is completed, its slot becomes available and can
         # be used to accept more jobs.
         return [
-            port for port, runner in zip(self._master_ports, self._runners)
+            f'{env.master_slot}/{slot}'
+            for slot, runner in zip(self._slot_ids, self._runners)
             if runner is True
         ]
 
@@ -153,26 +153,23 @@ class SoS_Worker(mp.Process):
             [runner for runner in self._runners if isinstance(runner, Runner)])
 
     def switch_to(self, idx):
-        if len(self._master_sockets) > idx:
+        if len(self._slot_ids) > idx:
             # if current stack is ok
-            env.master_socket = self._master_sockets[idx]
+            env.slot_id = self._slot_ids[idx]
             env.switch(self._env_idx[idx])
         else:
-            assert idx == len(self._master_ports)
-            # a new socket is needed
-            env.master_socket = create_socket(env.zmq_context, zmq.PAIR)
-            port = env.master_socket.bind_to_random_port(
-                f'tcp://{self.local_ip}')
+            assert idx == len(self._slot_ids)
+            # a new slot is needed
+            env.slot_id = uuid.uuid4().hex
             # switch to a new env_idx and returns new_idx, old_idx
             self._env_idx.append(env.request_new()[0])
-            self._master_sockets.append(env.master_socket)
-            self._master_ports.append(f'tcp://{self.local_ip}:{port}')
+            self._slot_ids.append(env.slot_id)
             self._runners.append(True)
             if 'WORKER' in env.config['SOS_DEBUG'] or 'ALL' in env.config[
                     'SOS_DEBUG']:
                 env.log_to_file(
                     'WORKER',
-                    f'WORKER {self.name} ({os.getpid()}) creates ports {self._master_ports}'
+                    f'WORKER {self.name} ({os.getpid()}) creates slots {self._slot_ids}'
                 )
 
     def __repr__(self):
@@ -202,6 +199,10 @@ class SoS_Worker(mp.Process):
         )
         env.ctrl_socket.connect(self.config["sockets"]["worker_backend"])
 
+        env.master_socket = create_socket(env.zmq_context, zmq.PAIR)
+        slot = env.master_socket.bind_to_random_port(f'tcp://{self.local_ip}')
+        env.master_slot = f'tcp://{self.local_ip}:{slot}'
+
         signal.signal(signal.SIGTERM, signal_handler)
         # result socket used by substeps
         env.result_socket = None
@@ -224,13 +225,13 @@ class SoS_Worker(mp.Process):
                 new_idx = len(self._runners) if not cr else cr[0]
                 self.switch_to(new_idx)
 
-                # although we have chosen one port, but we hae advertised multiple ports
+                # although we have chosen one slot, but we hae advertised multiple slots
                 # and the executor might choose another one. We therefore need to send all
-                # avilable ports to the controller. We also need to send a flag to let the
+                # avilable slots to the controller. We also need to send a flag to let the
                 # controller know if we have any pending job, and the controller might decide
                 # to kill this worker.
                 env.ctrl_socket.send(
-                    encode_msg([self.num_pending()] + self.available_ports()))
+                    encode_msg([self.num_pending()] + self.available_slots()))
                 reply = decode_msg(env.ctrl_socket.recv())
 
                 if reply is None:
@@ -254,7 +255,7 @@ class SoS_Worker(mp.Process):
                 # or a runner in case it is interrupted.
                 env.log_to_file(
                     'WORKER',
-                    f'WORKER {self.name} ({os.getpid()}, {self.num_pending()} pending) receives {self._type_of_work(reply)} request {self._name_of_work(reply)} with master port {self._master_ports[new_idx]}'
+                    f'WORKER {self.name} ({os.getpid()}, {self.num_pending()} pending) receives {self._type_of_work(reply)} request {self._name_of_work(reply)}'
                 )
 
                 if 'task' in reply:
@@ -274,9 +275,9 @@ class SoS_Worker(mp.Process):
                     self._runners[new_idx] = True
                     continue
 
-                master_port = reply['config']['sockets']['master_port']
-                if master_port != self._master_ports[new_idx]:
-                    new_idx = self._master_ports.index(master_port)
+                slot_id = reply['config']['worker_slot'].rsplit('/')[-1]
+                if slot_id != self._slot_ids[new_idx]:
+                    new_idx = self._slot_ids.index(slot_id)
                     self.switch_to(new_idx)
 
                 # step and workflow can yield. Here we call run_until_waiting directly because we know the Runner can proceed.
@@ -305,8 +306,7 @@ class SoS_Worker(mp.Process):
 
         close_socket(env.result_socket, 'substep result', now=True)
 
-        for socket in self._master_sockets:
-            close_socket(socket, 'worker master', now=True)
+        close_socket(env.master_socket, 'worker master', now=True)
         close_socket(env.ctrl_socket, now=True)
         disconnect_controllers(env.zmq_context)
         if 'PROFILE' in env.config['SOS_DEBUG'] or 'ALL' in env.config[
@@ -499,11 +499,11 @@ class WorkerManager(object):
 
         self._worker_backend_socket = backend_socket
 
-        # ports of workers working for blocking workflow
-        self._blocking_ports = set()
+        # slots of workers working for blocking workflow
+        self._blocking_slots = set()
 
-        self._available_ports = set()
-        self._claimed_ports = set()
+        self._available_slots = set()
+        self._claimed_slots = set()
 
         self._last_pending_msg = {}
 
@@ -516,7 +516,7 @@ class WorkerManager(object):
                 'SOS_DEBUG']:
             env.log_to_file(
                 'WORKER',
-                f'{msg.upper()}: {self._num_workers} workers (of which {len(self._blocking_ports)} is blocking), {self._n_requested} requested, {self._n_processed} processed'
+                f'{msg.upper()}: {self._num_workers} workers (of which {len(self._blocking_slots)} is blocking), {self._n_requested} requested, {self._n_processed} processed'
             )
 
     def add_request(self, msg_type, msg):
@@ -528,24 +528,24 @@ class WorkerManager(object):
             self._task_requests.insert(0, msg)
             self.report(f'Task requested')
         else:
-            port = msg['config']['sockets']['master_port']
-            self._step_requests[port] = msg
-            self.report(f'Step {port} requested')
+            worker_slot = msg['config']['worker_slot']
+            self._step_requests[worker_slot] = msg
+            self.report(f'Step {worker_slot} requested')
 
         if sum(self._num_workers) < sum(self._max_workers):
             self.start_worker()
 
     def worker_available(self, blocking, excluded):
-        if self._available_ports:
-            usable = [x for x in self._available_ports if x not in excluded]
+        if self._available_slots:
+            usable = [x for x in self._available_slots if x not in excluded]
             if usable:
                 claimed = usable[0]
-                self._available_ports.remove(usable[0])
-                self._claimed_ports.add(claimed)
+                self._available_slots.remove(usable[0])
+                self._claimed_slots.add(claimed)
                 return claimed
 
         if not blocking:
-            # no available port, can we start a new worker?
+            # no available slot, can we start a new worker?
             if sum(self._num_workers) < sum(self._max_workers):
                 self.start_worker()
             return None
@@ -557,99 +557,99 @@ class WorkerManager(object):
             if not self._worker_backend_socket.poll(5000):
                 raise RuntimeError('No worker is started after 5 seconds')
             msg = decode_msg(self._worker_backend_socket.recv())
-            port = self.process_request(msg[0], msg[1:], request_blocking=True)
-            if port is None or port in excluded:
+            slot = self.process_request(msg[0], msg[1:], request_blocking=True)
+            if slot is None or slot in excluded:
                 continue
-            self._claimed_ports.add(port)
-            self._blocking_ports.add(port)
+            self._claimed_slots.add(slot)
+            self._blocking_slots.add(slot)
             env.logger.debug(
                 f'Increasing maximum number of local workers to {self._max_workers[0]} to accommodate a blocking subworkflow.'
             )
-            return port
+            return slot
 
-    def process_request(self, num_pending, ports, request_blocking=False):
-        '''port is the open port at the worker, num_pending is the num_pending of stack.
+    def process_request(self, num_pending, slots, request_blocking=False):
+        '''slot is the open slot at the worker, num_pending is the num_pending of stack.
         A non-zero num_pending means that the worker is pending on something while
         looking for new job, so the worker should not be killed.
         '''
-        if any(port in self._step_requests for port in ports):
-            # if the port is available
-            port = [x for x in ports if x in self._step_requests][0]
+        if any(slot in self._step_requests for slot in slots):
+            # if the slot is available
+            slot = [x for x in slots if x in self._step_requests][0]
             self._worker_backend_socket.send(
-                encode_msg(self._step_requests.pop(port)))
+                encode_msg(self._step_requests.pop(slot)))
             self._n_processed += 1
-            self.report(f'Step {port} processed')
-            # port should be in claimed ports
-            self._claimed_ports.remove(port)
-            # if ports[0] in self._last_pending_time:
-            #     self._last_pending_time.pop(ports[0])
-        elif any(port in self._claimed_ports for port in ports):
-            # the port is claimed, but the real message is not yet available
+            self.report(f'Step {slot} processed')
+            # slot should be in claimed slots
+            self._claimed_slots.remove(slot)
+            # if slots[0] in self._last_pending_time:
+            #     self._last_pending_time.pop(slots[0])
+        elif any(slot in self._claimed_slots for slot in slots):
+            # the slot is claimed, but the real message is not yet available
             self._worker_backend_socket.send(encode_msg({}))
-            self.report(f'pending with claimed {ports}')
-        # elif any(port in self._blocking_ports for port in ports):
+            self.report(f'pending with claimed {slots}')
+        # elif any(slot in self._blocking_slots for slot in slots):
         #     # in block list but appear to be idle, kill it
         #     self._max_workers -= 1
         #     env.logger.debug(
         #         f'Reduce maximum number of workers to {self._max_workers} after completion of a blocking subworkflow.'
         #     )
-        #     for port in ports:
-        #         if port in self._blocking_ports:
-        #             self._blocking_ports.remove(port)
-        #         if port in self._available_ports:
-        #             self._available_ports.remove(port)
+        #     for slot in slots:
+        #         if slot in self._blocking_slots:
+        #             self._blocking_slots.remove(slot)
+        #         if slot in self._available_slots:
+        #             self._available_slots.remove(slot)
         #     self._worker_backend_socket.send(encode_msg(None))
         #     self._num_local_workers -= 1
-        #     self.report(f'Blocking worker {ports} killed')
+        #     self.report(f'Blocking worker {slots} killed')
         elif self._task_requests:
-            # port is not claimed, free to use for substep worker
+            # slot is not claimed, free to use for substep worker
             msg = self._task_requests.pop()
             self._worker_backend_socket.send(encode_msg(msg))
             self._n_processed += 1
-            self.report(f'Task processed with {ports[0]}')
-            # port can however be in available ports
-            for port in ports:
-                if port in self._available_ports:
-                    self._available_ports.remove(port)
-                # if port in self._last_pending_time:
-                #     self._last_pending_time.pop(port)
+            self.report(f'Task processed with {slots[0]}')
+            # slot can however be in available slots
+            for slot in slots:
+                if slot in self._available_slots:
+                    self._available_slots.remove(slot)
+                # if slot in self._last_pending_time:
+                #     self._last_pending_time.pop(slot)
         elif self._substep_requests:
-            # port is not claimed, free to use for substep worker
+            # slot is not claimed, free to use for substep worker
             msg = self._substep_requests.pop()
             self._worker_backend_socket.send(encode_msg(msg))
             self._n_processed += 1
-            self.report(f'Substep processed with {ports[0]}')
-            # port can however be in available ports
-            for port in ports:
-                if port in self._available_ports:
-                    self._available_ports.remove(port)
-                # if port in self._last_pending_time:
-                #     self._last_pending_time.pop(port)
+            self.report(f'Substep processed with {slots[0]}')
+            # slot can however be in available slots
+            for slot in slots:
+                if slot in self._available_slots:
+                    self._available_slots.remove(slot)
+                # if slot in self._last_pending_time:
+                #     self._last_pending_time.pop(slot)
         elif request_blocking:
             self._worker_backend_socket.send(encode_msg({}))
-            return ports[0]
-        # elif num_pending == 0 and self._num_local_workers > 1 and ports[
+            return slots[0]
+        # elif num_pending == 0 and self._num_local_workers > 1 and slots[
         #         0] in self._last_pending_time and time.time(
-        #         ) - self._last_pending_time[ports[0]] > 5:
+        #         ) - self._last_pending_time[slots[0]] > 5:
         #     # kill the worker
-        #     for port in ports:
-        #         if port in self._available_ports:
-        #             self._available_ports.remove(port)
+        #     for slot in slots:
+        #         if slot in self._available_slots:
+        #             self._available_slots.remove(slot)
         #     self._worker_backend_socket.send(encode_msg(None))
         #     self._num_local_workers -= 1
-        #     self.report(f'Kill standing {ports}')
-        #     self._last_pending_time.pop(ports[0])
+        #     self.report(f'Kill standing {slots}')
+        #     self._last_pending_time.pop(slots[0])
         else:
-            # if num_pending == 0 and ports[0] not in self._last_pending_time:
-            #     self._last_pending_time[ports[0]] = time.time()
-            self._available_ports.add(ports[0])
+            # if num_pending == 0 and slots[0] not in self._last_pending_time:
+            #     self._last_pending_time[slots[0]] = time.time()
+            self._available_slots.add(slots[0])
             self._worker_backend_socket.send(encode_msg({}))
-            ports = tuple(ports)
-            if (ports, num_pending) not in self._last_pending_msg or time.time(
-            ) - self._last_pending_msg[(ports, num_pending)] > 1.0:
+            slots = tuple(slots)
+            if (slots, num_pending) not in self._last_pending_msg or time.time(
+            ) - self._last_pending_msg[(slots, num_pending)] > 1.0:
                 self.report(
-                    f'pending with port {ports} at num_pending {num_pending}')
-                self._last_pending_msg[(ports, num_pending)] = time.time()
+                    f'pending with slot {slots} at num_pending {num_pending}')
+                self._last_pending_msg[(slots, num_pending)] = time.time()
 
     def start_worker(self):
         for idx, (worker_host, num_worker, max_worker) in enumerate(

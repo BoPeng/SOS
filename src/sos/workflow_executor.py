@@ -55,9 +55,9 @@ class dummy_node:
 
 class ProcInfo(object):
 
-    def __init__(self, socket, port, step) -> None:
+    def __init__(self, socket, worker_slot, step) -> None:
         self.socket = socket
-        self.port = port
+        self.worker_slot = worker_slot
         self.step = step
         self._last_alive = time.time()
 
@@ -89,6 +89,9 @@ class ExecutionManager(object):
     def __init__(self, name, dummy=False) -> None:
         self.workflow_name = name
         self.procs = []
+        # a dictionary of master sockets
+        self.master_sockets = {}
+        self.active_procs = {}
         self.pool = []
         # steps sent and queued from the nested workflow
         # they will be executed in random but at a higher priority than the steps
@@ -106,7 +109,8 @@ class ExecutionManager(object):
 
     def add_placeholder_worker(self, runnable, socket):
         runnable._status = 'step_pending'
-        self.procs.append(ProcInfo(socket=socket, port=None, step=runnable))
+        self.procs.append(
+            ProcInfo(socket=socket, worker_slot=None, step=runnable))
         self.poller.register(socket, zmq.POLLIN)
 
     def push_to_queue(self, runnable, spec):
@@ -138,55 +142,60 @@ class ExecutionManager(object):
         # port is still used by the executor and cannot be used for new jobs. Because of this we
         # have to temporarily exclude the ports that are active in the executor from the selection.
         #
-        master_port = request_answer_from_controller(
+        worker_slot = request_answer_from_controller(
             ['worker_available',
              self._is_next_job_blocking()] +
-            [x.port for x in self.procs if self.procs])
+            [x.worker_slot for x in self.procs if self.procs])
         # no worker is available
-        if master_port is None:
+        if worker_slot is None:
             env.log_to_file(
                 'EXECUTOR',
-                f'No worker is available ({len([x.port for x in self.procs if self.procs])} ports excluded)'
+                f'No worker is available ({len([x.worker_slot for x in self.procs if self.procs])} ports excluded)'
             )
             return False
-
         runnable, spec = self.step_queue.pop(
         ) if self.step_queue else self.workflow_queue.pop()
 
         if 'sockets' not in spec['config']:
             spec['config']['sockets'] = {}
+
+        master_port, _ = worker_slot.rsplit('/', 1)
         spec['config']['sockets']['master_port'] = master_port
+        spec['config']['worker_slot'] = worker_slot
+
         send_message_to_controller(
             ['step' if 'section' in spec else 'workflow', spec])
 
-        # if there is a pooled proc with the same port, let us use it to avoid re-creating a socket
-        proc_with_port = [
+        # the master port is shared so we can reuse any pooled ...
+        proc_with_slot = [
             idx for idx, proc in enumerate(self.procs)
-            if proc.port == master_port
+            if proc.worker_slot == worker_slot
         ]
-        if proc_with_port:
+        if proc_with_slot:
             raise RuntimeError(
-                f'worker {str(self.procs[proc_with_port[0]])} already uses this port {master_port}'
+                f'worker {str(self.procs[proc_with_slot[0]])} already uses this slot {worker_slot}'
             )
 
-        proc_with_port = [
-            idx for idx, proc in enumerate(self.pool)
-            if proc.port == master_port
-        ]
-
-        if len(proc_with_port) > 1:
-            raise RuntimeError('this should not happen')
-        if proc_with_port:
-            self.procs.append(self.pool[proc_with_port[0]])
-            self.pool.pop(proc_with_port[0])
-            self.procs[-1].step = runnable
-        else:
+        if master_port not in self.master_sockets:
             master_socket = create_socket(env.zmq_context, zmq.PAIR,
                                           'pair socket for step worker')
             master_socket.connect(master_port)
+            self.master_sockets[master_port] = master_socket
+
+        # use an existing pooled proc
+        if self.pool:
+            self.procs.append(self.pool.pop(0))
+            self.procs[-1].step = runnable
+            self.procs[-1].worker_slot = worker_slot
+            self.procs[-1].socket = self.master_sockets[master_port]
+        else:
             # we need to create a ProcInfo to keep track of the step
             self.procs.append(
-                ProcInfo(socket=master_socket, port=master_port, step=runnable))
+                ProcInfo(
+                    socket=self.master_sockets[master_port],
+                    worker_slot=worker_slot,
+                    step=runnable))
+        self.active_procs[master_port] = self.procs[-1]
         return True
 
     def _num_of_procs(self):
@@ -204,23 +213,22 @@ class ExecutionManager(object):
         self.step_queue = []
         self.workflow_queue = []
 
-    def dispose(self, idx: int) -> None:
-        self.poller.unregister(self.procs[idx].socket)
-        close_socket(self.procs[idx].socket)
+    def dispose(self, proc) -> None:
+        # the socket is shared and do not need to be disposed
+        idx = [x.worker_slot for x in self.procs].index(proc.worker_slot)
         self.procs[idx] = None
 
-    def mark_idle(self, idx: int) -> None:
-        self.pool.append(self.procs[idx])
+    def mark_idle(self, proc) -> None:
+        self.pool.append(proc)
+        idx = [x.worker_slot for x in self.procs].index(proc.worker_slot)
         self.procs[idx] = None
 
     def cleanup(self) -> None:
         self.procs = [x for x in self.procs if x is not None]
 
     def terminate(self) -> None:
-        for proc in self.procs + self.pool:
-            if proc is None:
-                continue
-            close_socket(proc.socket)
+        for socket in self.master_sockets.values():
+            close_socket(socket)
 
 
 class Base_Executor:
@@ -1157,12 +1165,15 @@ class Base_Executor:
             exec_error = ExecuteError(self.workflow.name)
             while True:
                 # step 1: check existing jobs and see if they are completed
-                for idx, proc in enumerate(manager.procs):
-                    if proc is None:
+                for port, socket in manager.master_sockets.items():
+                    if not socket.poll(0):
                         continue
 
-                    # echck if there is any message from the socket
-                    if not proc.socket.poll(0):
+                    # the message should have slot_id to identify proc
+                    proc = manager.active_procs[port]
+                    if proc is None:
+                        env.logger.error(
+                            'Empty proc should not have received messaeg')
                         continue
 
                     # receieve something from the worker
@@ -1354,7 +1365,7 @@ class Base_Executor:
 
                     # when a worker receives a result, it should be done so the socket should no longer
                     # be used... until the next time the worker use the same socket for another step
-                    manager.mark_idle(idx)
+                    manager.mark_idle(proc)
 
                     if hasattr(runnable, '_from_nested'):
                         # if the runnable is from nested, we will need to send the result back
@@ -1404,7 +1415,7 @@ class Base_Executor:
                                         f'Master received an exception')
                         if runnable._status == 'workflow_running_pending':
                             for pwf in runnable._pending_workflows:
-                                for midx, proc in enumerate(manager.procs):
+                                for proc in manager.procs:
                                     if proc is None:
                                         continue
                                     if proc.in_status(
@@ -1413,7 +1424,7 @@ class Base_Executor:
                                         proc.step._pending_workflows.remove(pwf)
                                         if not proc.step._pending_workflows:
                                             proc.set_status('failed')
-                                            manager.mark_idle(midx)
+                                            manager.mark_idle(proc)
 
                         if env.config['error_mode'] == 'ignore':
                             env.logger.warning(
@@ -1706,12 +1717,15 @@ class Base_Executor:
                     # continue only if we get any message from any of the sockets
                     yield manager.poller
                 # step 1: check existing jobs and see if they are completed
-                for idx, proc in enumerate(manager.procs):
-                    if proc is None:
+                for port, socket in manager.master_sockets.items():
+
+                    if not socket.poll(0):
                         continue
 
-                    # echck if there is any message from the socket
-                    if not proc.socket.poll(0):
+                    proc = manager.active_procs[port]
+                    if proc is None:
+                        env.logger.error(
+                            f'None proc should not have received message')
                         continue
 
                     # receieve something from the pipe
@@ -1760,7 +1774,7 @@ class Base_Executor:
                     # in a nested workflow, the manager manages all dummy nodes with a fake
                     # process but real socket. When the step is done. The socket needs to be
                     # closed.
-                    manager.dispose(idx)
+                    manager.dispose(proc)
                     if isinstance(res, UnavailableLock):
                         self.handle_unavailable_lock(res, dag, runnable)
                     elif isinstance(res, RemovedTarget):

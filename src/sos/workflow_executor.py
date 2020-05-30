@@ -137,9 +137,9 @@ class ExecutionManager(object):
         #
         # NOTE: #1222
         #
-        # It is possible that a port is said to be avialble since the worker have completed the
+        # It is possible that a slot is said to be avialble since the worker have completed the
         # job but the executor has not finished working on the return value. In this case the
-        # port is still used by the executor and cannot be used for new jobs. Because of this we
+        # port is still worker_slot by the executor and cannot be used for new jobs. Because of this we
         # have to temporarily exclude the ports that are active in the executor from the selection.
         #
         worker_slot = request_answer_from_controller(
@@ -153,6 +153,11 @@ class ExecutionManager(object):
                 f'No worker is available ({len([x.worker_slot for x in self.procs if self.procs])} ports excluded)'
             )
             return False
+        else:
+            env.log_to_file(
+                'EXECUTOR',
+                f'Slot {worker_slot} is available to work on a {"step" if self.step_queue else "workflow"}'
+            )
         runnable, spec = self.step_queue.pop(
         ) if self.step_queue else self.workflow_queue.pop()
 

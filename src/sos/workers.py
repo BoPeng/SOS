@@ -216,12 +216,15 @@ class SoS_Worker(mp.Process):
                     ofc = get_open_files_and_connections(os.getpid())
                     env.log_to_file(
                         'OPENFILES',
-                        f'{os.getpid()} has {len(ofc["open_files"])} open files and {len(ofc["connections"])} connections.'
+                        f'Worker {os.getpid()} has {len(ofc["open_files"])} open files and {len(ofc["connections"])} connections.'
                     )
                 wr = self.waiting_runners()
                 if wr:
                     for idx in wr:
                         self.switch_to(idx)
+                        # notify the master the current slot of the worker
+                        env.master_socket.send(encode_msg(env.slot_id))
+
                         # it can be True for completion and Runner itself for continue
                         self._runners[idx] = self._runners[
                             idx].run_until_waiting()
@@ -287,6 +290,8 @@ class SoS_Worker(mp.Process):
                     new_idx = self._slot_ids.index(slot_id)
                     self.switch_to(new_idx)
 
+                # notify the master the current slot of the worker
+                env.master_socket.send(encode_msg(env.slot_id))
                 # step and workflow can yield. Here we call run_until_waiting directly because we know the Runner can proceed.
                 self._runners[new_idx] = Runner(
                     self.run_step(**reply)

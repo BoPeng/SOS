@@ -107,6 +107,12 @@ class ExecutionManager(object):
             f"{env.sos_dict['workflow_id']}({self.workflow_name}) {msg} {', '.join(str(proc) for proc in self.procs if proc is not None)}"
         )
 
+    def set_active_proc(self, master_port, slot_id):
+        # worker sends in current worker_slot, and we should set active proc for the worker
+        self.active_procs[master_port] = [
+            x for x in self.procs if x.worker_slot == f'{master_port}/{slot_id}'
+        ][0]
+
     def add_placeholder_worker(self, runnable, socket):
         runnable._status = 'step_pending'
         self.procs.append(
@@ -1173,6 +1179,18 @@ class Base_Executor:
                 for port, socket in manager.master_sockets.items():
                     if not socket.poll(0):
                         continue
+                    # receieve something from the worker
+                    res = decode_msg(socket.recv())
+                    # this message is sent by the worker to set currently
+                    # active slot
+                    if isinstance(res, str):
+                        try:
+                            manager.set_active_proc(port, res)
+                            continue
+                        except Exception as e:
+                            raise RuntimeError(
+                                f'Unexpected value or worker_slot from worker {short_repr(res)}: {e}'
+                            )
 
                     # the message should have slot_id to identify proc
                     proc = manager.active_procs[port]
@@ -1181,8 +1199,6 @@ class Base_Executor:
                             'Empty proc should not have received messaeg')
                         continue
 
-                    # receieve something from the worker
-                    res = decode_msg(proc.socket.recv())
                     runnable = proc.step
                     # if this is NOT a result, rather some request for task, step, workflow etc
                     if isinstance(res, list):
@@ -1364,9 +1380,6 @@ class Base_Executor:
                             raise RuntimeError(
                                 f'Unexpected value from step {short_repr(res)}')
                         continue
-                    elif isinstance(res, str):
-                        raise RuntimeError(
-                            f'Unexpected value from step {short_repr(res)}')
 
                     # when a worker receives a result, it should be done so the socket should no longer
                     # be used... until the next time the worker use the same socket for another step

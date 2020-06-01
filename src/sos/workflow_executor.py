@@ -112,9 +112,9 @@ class ExecutionManager(object):
     def push_to_queue(self, runnable, spec):
         # try to avoid interference between tasks
         if 'section' in spec:
-            self.step_queue.insert(0, [runnable, copy.deepcopy(spec)])
+            self.step_queue.append([runnable, copy.deepcopy(spec)])
         else:
-            self.workflow_queue.insert(0, [runnable, copy.deepcopy(spec)])
+            self.workflow_queue.append([runnable, copy.deepcopy(spec)])
 
     def _is_next_job_blocking(self):
         return self.workflow_queue and self.workflow_queue[-1][1]['blocking']

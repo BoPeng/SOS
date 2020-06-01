@@ -10,7 +10,7 @@ import time
 import threading
 import uuid
 from collections import defaultdict
-from .utils import env, ProcessKilled, get_localhost_ip
+from .utils import env, ProcessKilled, get_localhost_ip, get_open_files_and_connections
 from .signatures import StepSignatures, WorkflowSignatures
 from .messages import encode_msg, decode_msg
 
@@ -628,7 +628,13 @@ class Controller(threading.Thread):
 
         try:
             while True:
-
+                if 'OPENFILES' in env.config[
+                        'SOS_DEBUG'] or 'ALL' in env.config['SOS_DEBUG']:
+                    ofc = get_open_files_and_connections(os.getpid())
+                    env.log_to_file(
+                        'OPENFILES',
+                        f'{os.getpid()} has {len(ofc["open_files"])} open files and {len(ofc["connections"])} connections.'
+                    )
                 while True:
                     socks = dict(poller.poll(1000))
                     if socks:

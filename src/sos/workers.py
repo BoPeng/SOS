@@ -15,7 +15,7 @@ import zmq
 from .controller import (close_socket, connect_controllers, create_socket,
                          disconnect_controllers)
 from .executor_utils import kill_all_subprocesses, prepare_env
-from .utils import env, ProcessKilled, short_repr, get_localhost_ip
+from .utils import env, ProcessKilled, short_repr, get_localhost_ip, get_open_files_and_connections
 from .messages import encode_msg, decode_msg
 
 
@@ -210,6 +210,13 @@ class SoS_Worker(mp.Process):
         # wait to handle jobs
         while True:
             try:
+                if 'OPENFILES' in env.config[
+                        'SOS_DEBUG'] or 'ALL' in env.config['SOS_DEBUG']:
+                    ofc = get_open_files_and_connections(os.getpid())
+                    env.log_to_file(
+                        'OPENFILES',
+                        f'{os.getpid()} has {len(ofc["open_files"])} open files and {len(ofc["connections"])} connections.'
+                    )
                 wr = self.waiting_runners()
                 if wr:
                     for idx in wr:

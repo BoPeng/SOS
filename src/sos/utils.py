@@ -12,6 +12,7 @@ import logging
 import math
 import os
 import pickle
+import psutil
 import re
 import sys
 import socket
@@ -1936,3 +1937,8 @@ def under_cluster():
     return any(
         x in os.environ for x in ("SLURM_NODELIST", "PBS_ENVIRONMENT",
                                   "PE_HOSTFILE", "LSB_MCPU_HOSTS"))
+
+
+def get_open_files_and_connections(pid):
+    proc = psutil.Process(pid)
+    return {'open_files': proc.open_files(), 'connections': proc.connections()}

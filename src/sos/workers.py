@@ -99,7 +99,8 @@ class SoS_Worker(mp.Process):
 
     '''
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None,
+    def __init__(self,
+                 config: Optional[Dict[str, Any]] = None,
                  **kwargs) -> None:
         '''
 
@@ -215,7 +216,7 @@ class SoS_Worker(mp.Process):
                     ofc = get_open_files_and_connections(os.getpid())
                     env.log_to_file(
                         'OPENFILES',
-                        f'{os.getpid()} has {len(ofc["open_files"])} open files and {len(ofc["connections"])} connections.'
+                        f'WORKER {os.getpid()} has {len(ofc["open_files"])} open files and {len(ofc["connections"])} connections.'
                     )
                 wr = self.waiting_runners()
                 if wr:

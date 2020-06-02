@@ -633,7 +633,7 @@ class Controller(threading.Thread):
                     ofc = get_open_files_and_connections(os.getpid())
                     env.log_to_file(
                         'OPENFILES',
-                        f'{os.getpid()} has {len(ofc["open_files"])} open files and {len(ofc["connections"])} connections.'
+                        f'CONTROLLER {os.getpid()} has {len(ofc["open_files"])} open files and {len(ofc["connections"])} connections.'
                     )
                 while True:
                     socks = dict(poller.poll(1000))

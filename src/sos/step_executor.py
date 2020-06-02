@@ -373,7 +373,7 @@ class Base_Step_Executor:
         # this will be redefined in subclasses
         raise RuntimeError('Undefined base function wait_for_tasks')
 
-    def wait_for_subworkflows(self, workflow_results):
+    def wait_for_subworkflows(self):
         raise RuntimeError('Undefined base function wait_for_subworkflows')
 
     def handle_unknown_target(self, e):
@@ -1836,8 +1836,7 @@ class Base_Step_Executor:
                 #
             if self._subworkflow_results:
                 try:
-                    runner = self.wait_for_subworkflows(
-                        self._subworkflow_results)
+                    runner = self.wait_for_subworkflows()
                     yreq = next(runner)
                     while True:
                         yres = yield yreq
@@ -1965,10 +1964,9 @@ class Step_Executor(Base_Step_Executor):
                 break
         return results
 
-    def wait_for_subworkflows(self, workflow_results):
+    def wait_for_subworkflows(self):
         '''Wait for results from subworkflows'''
-        wf_ids = sum([x['pending_workflows'] for x in workflow_results], [])
-        for wf_id in wf_ids:
+        while self._subworkflow_results:
             # here we did not check if workflow ids match
             yield self.socket
             res = decode_msg(self.socket.recv())
@@ -1976,6 +1974,27 @@ class Step_Executor(Base_Step_Executor):
                 sys.exit(0)
             elif isinstance(res, Exception):
                 raise res
+            if not '__workflow_id__' in res:
+                raise ValueError(
+                    f'Unrecognized result from subworkflows: {res}')
+            # remove from _self._subworkflow_results
+            result_with_id = [
+                idx for idx, x in enumerate(self._subworkflow_results)
+                if res['__workflow_id__'] in x['pending_workflows']
+            ]
+            if not result_with_id:
+                raise RuntimeError(
+                    f'Failed to identify ID of returned subworkflow: {res}')
+            if len(result_with_id) > 1:
+                raise RuntimeError(
+                    'Multiple matches of subworkflow ID. This should not happen.'
+                )
+            self._subworkflow_results[
+                result_with_id[0]]['pending_workflows'].remove(
+                    res['__workflow_id__'])
+            if not self._subworkflow_results[
+                    result_with_id[0]]['pending_workflows']:
+                self._subworkflow_results.pop(result_with_id[0])
 
     def handle_unknown_target(self, e):
         self.socket.send(encode_msg(['missing_target', e.target]))

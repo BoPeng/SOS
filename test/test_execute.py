@@ -2795,3 +2795,25 @@ def test_assignment_after_input(temp_factory):
         touch temp/{ff}
         ''',
         options={'sig_mode': 'ignore'})
+
+
+def test_1379(clear_now_and_after):
+    clear_now_and_after('a.txt', 'b.txt')
+
+    execute_workflow('''
+    [multi: provides=['a.txt', 'b.txt']]
+
+    out = 'a.txt', 'b.txt'
+    output: out
+
+    import time
+    time.sleep(2)
+    _output.touch()
+
+
+    [step_1]
+    input: 'a.txt'
+
+    [step_2]
+    input: 'b.txt'
+    ''')

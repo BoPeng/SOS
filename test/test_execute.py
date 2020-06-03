@@ -1639,45 +1639,6 @@ print(_input)
         wf = script.workflow()
         Base_Executor(wf).run()
 
-    def testMultiDepends(self):
-        '''Test a step with multiple depdendend steps'''
-        for file in ('dbsnp.vcf', 'hg19.fa', 'f1.fastq', 'f2.fastq', 'f1.bam',
-                     'f2.bam', 'f1.bam.idx', 'f2.bam.idx'):
-            if os.path.isfile(file):
-                os.remove(file)
-        self.touch(['f1.fastq', 'f2.fastq'])
-        script = SoS_Script('''
-import time
-
-[refseq: provides='hg19.fa']
-time.sleep(1)
-_output.touch()
-
-[dbsnp: provides='dbsnp.vcf']
-_output.touch()
-
-[align_10]
-depends: 'hg19.fa'
-input: 'f1.fastq', 'f2.fastq', group_by=1, concurrent=True
-output: _input.with_suffix('.bam')
-_output.touch()
-
-[align_20]
-input: group_by=1, concurrent=True
-output: _input.with_suffix('.bam.idx')
-_output.touch()
-
-[call_10]
-depends: 'dbsnp.vcf', 'hg19.fa'
-
-[call_20]
-''')
-        wf = script.workflow('align+call')
-        Base_Executor(wf).run()
-        for file in ('dbsnp.vcf', 'hg19.fa', 'f1.bam', 'f2.bam', 'f1.bam.idx',
-                     'f2.bam.idx'):
-            self.assertTrue(os.path.isfile(file))
-
     def testRemovalOfOutputFromFailedStep(self):
         '''Test the removal of output files if a step fails #1055'''
         for file in ('failed.csv', 'result.csv'):
@@ -1923,78 +1884,6 @@ input: named_output('bak')
 output: 'B.txt'
 _output.touch()
 ''')
-
-    def testRemoveEmptyGroups(self):
-        '''Test remove of empty groups'''
-        # case 1, default output
-        script = SoS_Script('''\
-[10]
-input: for_each=dict(i=range(4))
-output: f'a_{i}.txt'
-_output.touch()
-skip_if(i==2)
-
-[20]
-assert len(step_input.groups) == 4
-    ''')
-        wf = script.workflow()
-        Base_Executor(wf).run()
-        # case 2, use default remove_empty_groups=False
-        script = SoS_Script('''\
-[A]
-input: for_each=dict(i=range(4))
-output: f'a_{i}.txt'
-_output.touch()
-skip_if(i==2)
-
-[default]
-input: output_from('A')
-assert len(step_input.groups) == 4
-    ''')
-        wf = script.workflow()
-        Base_Executor(wf).run()
-        # case 3, use remove_empty_groups=True
-        script = SoS_Script('''\
-[A]
-input: for_each=dict(i=range(4))
-output: f'a_{i}.txt'
-_output.touch()
-skip_if(i==2)
-
-[default]
-input: output_from('A', remove_empty_groups=True)
-assert len(step_input.groups) == 3
-    ''')
-        wf = script.workflow()
-        Base_Executor(wf).run()
-        # case 4, use named_output
-        script = SoS_Script('''\
-[A]
-input: for_each=dict(i=range(4))
-output: A=f'a_{i}.txt'
-_output.touch()
-skip_if(i==2)
-
-[default]
-input: named_output('A')
-assert len(step_input.groups) == 4
-    ''')
-        wf = script.workflow()
-        Base_Executor(wf).run()
-        # case 5, use named_output
-        script = SoS_Script('''\
-[A]
-input: for_each=dict(i=range(4))
-output: A=f'a_{i}.txt'
-_output.touch()
-skip_if(i==2)
-
-[default]
-input: named_output('A', remove_empty_groups=True)
-assert len(step_input.groups) == 3
-    ''')
-        wf = script.workflow()
-        Base_Executor(wf).run()
 
     def testSetVariablesTo_Output(self):
         '''Test assigning variables to _output'''
@@ -2817,3 +2706,123 @@ def test_1379(clear_now_and_after):
     [step_2]
     input: 'b.txt'
     ''')
+
+
+def test_remove_empty_groups_default():
+    '''Test remove of empty groups'''
+    # case 1, default output
+    execute_workflow('''
+        [10]
+        input: for_each=dict(i=range(4))
+        output: f'a_{i}.txt'
+        _output.touch()
+        skip_if(i==2)
+
+        [20]
+        assert len(step_input.groups) == 4
+        ''')
+
+
+def test_remove_empty_groups_false():
+    '''Test remove of empty groups'''
+    # case 2, use default remove_empty_groups=False
+    execute_workflow('''
+        [A]
+        input: for_each=dict(i=range(4))
+        output: f'a_{i}.txt'
+        _output.touch()
+        skip_if(i==2)
+
+        [default]
+        input: output_from('A')
+        assert len(step_input.groups) == 4
+        ''')
+
+
+def test_remove_empty_groups_true():
+    '''Test remove of empty groups'''
+    # case 3, use remove_empty_groups=True
+    execute_workflow('''
+        [A]
+        input: for_each=dict(i=range(4))
+        output: f'a_{i}.txt'
+        _output.touch()
+        skip_if(i==2)
+
+        [default]
+        input: output_from('A', remove_empty_groups=True)
+        assert len(step_input.groups) == 3
+        ''')
+
+
+def test_remove_empty_groups_named():
+    '''Test remove of empty groups'''
+    # case 4, use named_output
+    execute_workflow('''
+        [A]
+        input: for_each=dict(i=range(4))
+        output: A=f'a_{i}.txt'
+        _output.touch()
+        skip_if(i==2)
+
+        [default]
+        input: named_output('A')
+        assert len(step_input.groups) == 4
+        ''')
+
+
+def test_remove_empty_groups_empty_named():
+    '''Test remove of empty groups'''
+    # case 5, use named_output
+    execute_workflow('''
+        [A]
+        input: for_each=dict(i=range(4))
+        output: A=f'a_{i}.txt'
+        _output.touch()
+        skip_if(i==2)
+
+        [default]
+        input: named_output('A', remove_empty_groups=True)
+        assert len(step_input.groups) == 3
+        ''')
+
+
+def test_multi_depends(clear_now_and_after, temp_factory):
+    '''Test a step with multiple depdendend steps'''
+
+    clear_now_and_after('dbsnp.vcf', 'hg19.fa', 'f1.fastq', 'f2.fastq',
+                        'f1.bam', 'f2.bam', 'f1.bam.idx', 'f2.bam.idx')
+    temp_factory('f1.fastq', 'f2.fastq')
+
+    execute_workflow(
+        '''
+import time
+
+[refseq: provides='hg19.fa']
+time.sleep(1)
+_output.touch()
+
+[dbsnp: provides='dbsnp.vcf']
+_output.touch()
+
+[align_10]
+depends: 'hg19.fa'
+input: 'f1.fastq', 'f2.fastq', group_by=1, concurrent=True
+output: _input.with_suffix('.bam')
+_output.touch()
+
+[align_20]
+input: group_by=1, concurrent=True
+output: _input.with_suffix('.bam.idx')
+_output.touch()
+
+[call_10]
+depends: 'dbsnp.vcf', 'hg19.fa'
+
+[call_20]
+''',
+        workflow='align+call')
+
+    for file in ('dbsnp.vcf', 'hg19.fa', 'f1.bam', 'f2.bam', 'f1.bam.idx',
+                 'f2.bam.idx'):
+        assert os.path.isfile(file)

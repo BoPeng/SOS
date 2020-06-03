@@ -441,12 +441,10 @@ def get_step_output(section, default_output, analysis_type):
     # # if the output is of type named_output, we do not need to care about
     # # the exact output either. We just need to check if there are other
     # # named output
-    # n_args, name_kwargs = get_num_of_args_and_names_of_kwargs(
-    #     section.statements[output_idx][2])
-    # name_kwargs = [x for x in name_kwargs if x not in SOS_TARGETS_OPTIONS]
-
-    # if n_args == 0 and all(isinstance(x, named_output) for x in default_output):
-    #     return [named_output(x) for x in name_kwargs]
+    n_args, name_kwargs = get_num_of_args_and_names_of_kwargs(
+        section.statements[output_idx][2])
+    name_kwargs = [x for x in name_kwargs if x not in SOS_TARGETS_OPTIONS]
+    step_output.extend([named_output(x) for x in name_kwargs])
 
     # now, if we are referred by a filename, we have to figure out what
     # these filenames are... if there is only one argument, let us
@@ -511,14 +509,18 @@ def get_step_output(section, default_output, analysis_type):
         except SyntaxError:
             raise
         except Exception as e:
-            if analysis_type == 'backward':
-                raise RuntimeError(
-                    f'Failed to determine input "{value}" of an auxiliary step: {e}'
-                )
-            elif 'STEP' in env.config['SOS_DEBUG'] or 'ALL' in env.config[
+            if 'STEP' in env.config['SOS_DEBUG'] or 'ALL' in env.config[
                     'SOS_DEBUG']:
                 env.log_to_file('STEP',
                                 f"Args {value} cannot be determined: {e}")
+            # usually we want to get the exact output. However in the case when
+            # the step is referred by named_output(), it is ok for us to not
+            # know the details.
+            if analysis_type == 'backward' and (n_args > 0 or not all(
+                    isinstance(x, named_output) for x in default_output)):
+                raise RuntimeError(
+                    f'Failed to determine input "{value}" of an auxiliary step: {e}'
+                )
         finally:
             [env.sos_dict.dict().pop(x) for x in svars]
             env.sos_dict.quick_update(old_values)

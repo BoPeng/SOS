@@ -457,14 +457,15 @@ def get_step_output(section, default_output, analysis_type):
 
     # if we do have output, we have to evaluate starting from input...
     for statement in section.statements[:output_idx + 1]:
-        if statement[1] == 'depends':
+        if statement[0] == ':' and statement[1] == 'depends':
             continue
-        if statement[0] == '!' and analysis_type == 'backward':
-            try:
-                SoS_exec(statement[1], return_result=False)
-                continue
-            except Exception as e:
-                raise f'Failed to evaluate an statement "{value}" of an auxiliary step: {e}'
+        if statement[0] == '!':
+            if analysis_type == 'backward':
+                try:
+                    SoS_exec(statement[1], return_result=False)
+                except Exception as e:
+                    raise f'Failed to evaluate an statement "{value}" of an auxiliary step: {e}'
+            continue
 
         if statement[1] == 'input' and analysis_type != 'backward':
             continue

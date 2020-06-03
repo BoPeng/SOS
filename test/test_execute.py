@@ -1107,31 +1107,6 @@ touch {_input}.bak
         #
         shutil.rmtree('temp')
 
-    def testAssignmentAfterInput(self):
-        '''Testing assignment after input should be usable inside step process.'''
-        #
-        if os.path.isdir('temp'):
-            shutil.rmtree('temp')
-        os.mkdir('temp')
-        #
-        env.config['sig_mode'] = 'ignore'
-        script = SoS_Script('''
-[1]
-rep = range(5)
-input:  for_each='rep'
-output: f"temp/{_rep}.txt"
-
-# ff should change and be usable inside run
-ff = f"{_rep}.txt"
-run: expand=True
-echo {ff}
-touch temp/{ff}
-''')
-        wf = script.workflow()
-        Base_Executor(wf).run()
-        #
-        shutil.rmtree('temp')
-
     def testUseOfRunmode(self):
         '''Test the use of run_mode variable in SoS script'''
         #
@@ -2765,25 +2740,25 @@ def test_error_handling_of_missing_input(clear_now_and_after):
     st = time.time()
 
     script = """
-        import time
+import time
 
-        [10]
-        time.sleep(8)
+[10]
+time.sleep(8)
 
-        [11]
-        output: '11.txt'
-        _output.touch()
+[11]
+output: '11.txt'
+_output.touch()
 
-        [20]
-        input: None
-        time.sleep(2)
+[20]
+input: None
+time.sleep(2)
 
-        [21]
-        input: 'no_existent.txt'
+[21]
+input: 'no_existent.txt'
 
-        [22]
-        output: '22.txt'
-        _output.touch()
+[22]
+output: '22.txt'
+_output.touch()
         """
     with pytest.raises(Exception):
         execute_workflow(script)
@@ -2799,3 +2774,24 @@ def test_error_handling_of_missing_input(clear_now_and_after):
     assert time.time(
     ) - st >= 8, 'Test test should fail only after step 10 is completed'
     assert not os.path.isfile('22.txt')
+
+
+def test_assignment_after_input(temp_factory):
+    '''Testing assignment after input should be usable inside step process.'''
+    #
+    temp_factory(dir='temp')
+
+    execute_workflow(
+        '''
+        [1]
+        rep = range(5)
+        input:  for_each='rep'
+        output: f"temp/{_rep}.txt"
+
+        # ff should change and be usable inside run
+        ff = f"{_rep}.txt"
+        run: expand=True
+        echo {ff}
+        touch temp/{ff}
+        ''',
+        options={'sig_mode': 'ignore'})

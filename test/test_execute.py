@@ -2566,9 +2566,11 @@ def test_interpolation_4(temp_factory):
     ]
 
 
-def test_named_output(script_factory):
+def test_named_output():
     '''Testing named_output input function'''
-    script = script_factory('''r
+    for wf in ('B', 'C', 'D'):
+        execute_workflow(
+            '''
 [A]
 input: for_each=dict(i=range(4))
 output: aa=f'a_{i}.txt', bb=f'b_{i}.txt'
@@ -2597,12 +2599,11 @@ assert(len(step_input) == 4)
 assert(step_input.labels == ['K']*4)
 assert(step_input.groups[1] == ['b_2.txt', 'b_3.txt'])
 
-    ''')
-    for wf in ('B', 'C', 'D'):
-        execute_workflow(script, workflow=wf)
+    ''',
+            workflow=wf)
 
 
-def test_auto_provide(self):
+def test_auto_provide():
     '''Testing steps to provide plain output'''
     execute_workflow('''
         [global]

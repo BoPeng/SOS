@@ -222,26 +222,6 @@ task:
             elif section.names[0][1] == '5':
                 self.assertTrue('output' not in res['signature_vars'])
 
-    def testAnalyzeOutputFrom(self):
-        '''Test extracting of from=value option from input'''
-        script = SoS_Script('''
-[A_1]
-input:  output_from('B')
-
-[A_2]
-input: something_unknown, sos_groups(output_from(['C1', 'C2']), by=2), group_by=1
-''')
-        wf = script.workflow('A')
-        Base_Executor(wf)
-        for section in wf.sections:
-            res = analyze_section(section)
-            if section.names[0][1] == 1:
-                self.assertEqual(res['step_depends'],
-                                 sos_targets(sos_step('B')))
-            if section.names[0][1] == 2:
-                self.assertTrue(res['step_depends'] == sos_targets(
-                    sos_step('C1'), sos_step('C2')))
-
     def testOnDemandOptions(self):
         '''Test options that are evaluated upon request.'''
         options = on_demand_options({'a': '"est"', 'b': 'c', 'c': 'e + 2'})
@@ -327,5 +307,21 @@ input: something_unknown, sos_groups(output_from(['C1', 'C2']), by=2), group_by=
             self.assertEqual(as_fstring(string), fstring)
 
 
-if __name__ == '__main__':
-    unittest.main()
+def test_analyze_output_from():
+    '''Test extracting of from=value option from input'''
+    script = SoS_Script('''
+[A_1]
+input:  output_from('B')
+
+[A_2]
+input: something_unknown, sos_groups(output_from(['C1', 'C2']), by=2), group_by=1
+''')
+    wf = script.workflow('A')
+    Base_Executor(wf)
+    for section in wf.sections:
+        res = analyze_section(section, analysis_type='forward')
+        if section.names[0][1] == 1:
+            assert res['step_depends'] == sos_targets(sos_step('B'))
+        if section.names[0][1] == 2:
+            assert res['step_depends'] == sos_targets(
+                sos_step('C1'), sos_step('C2'))

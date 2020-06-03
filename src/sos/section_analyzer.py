@@ -444,7 +444,8 @@ def get_step_output(section, default_output, analysis_type):
     n_args, name_kwargs = get_num_of_args_and_names_of_kwargs(
         section.statements[output_idx][2])
     name_kwargs = [x for x in name_kwargs if x not in SOS_TARGETS_OPTIONS]
-    step_output.extend([named_output(x) for x in name_kwargs])
+    if name_kwargs:
+        step_output.extend([named_output(x) for x in name_kwargs])
 
     # now, if we are referred by a filename, we have to figure out what
     # these filenames are... if there is only one argument, let us

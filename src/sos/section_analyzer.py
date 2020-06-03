@@ -8,9 +8,9 @@ import ast
 from collections.abc import Mapping, Sequence
 from typing import Any, Dict, Optional
 
-from .eval import SoS_eval, accessed_vars, used_in_func
+from .eval import SoS_eval, accessed_vars, used_in_func, SoS_exec
 from .parser import SoS_Step
-from .targets import dynamic, remote, sos_targets, sos_step, named_output
+from .targets import dynamic, remote, sos_targets, sos_step, named_output, file_target
 from .utils import env
 from .executor_utils import __null_func__, prepare_env, strip_param_defs
 from .syntax import SOS_TARGETS_OPTIONS
@@ -98,15 +98,13 @@ def get_names_of_param(name, param_list, extra_dict={}):
     return values
 
 
-def get_num_of_args_and_names_of_kwargs(name, param_list):
+def get_num_of_args_and_names_of_kwargs(param_list):
     tree = ast.parse(f'__null_func__({param_list})')
-    res = []
-    for func in [
-            x for x in ast.walk(tree) if x.__class__.__name__ == 'Call' and
-            hasattr(x.func, 'id') and x.func.id == name
-    ]:
-        res.append([len(func.args), [x.arg for x in func.keywords]])
-    return res
+    # func is the __null_func__
+    func = tree.body[0].value
+    nargs = len(func.args)
+    keywords = [x.arg for x in func.keywords]
+    return nargs, keywords
 
 
 def find_statement(section, name):
@@ -408,57 +406,121 @@ def get_step_input(section, default_input):
     return step_input, dynamic_input
 
 
-def get_step_output(section, default_output):
+def get_step_output(section, default_output, analysis_type):
     '''determine step output'''
-    step_output: sos_targets = sos_targets()
     #
+    # There are three analysis_style:
+    #
+    #  'default': used for initial pass, we do not have any
+    #      default_output, and we just try to get some information
+    #      if we can.
+    #
+    #  'forward': used when adding forward step. We do not care
+    #       about default_output.
+    #
+    #  'backward': used when adding as backwwad step. Smetimes we have
+    #       to figure out output.
+    #
+    step_output: sos_targets = sos_targets()
+
     if 'provides' in section.options and default_output:
         step_output = default_output
 
-    # look for input statement.
+    # look for output statement.
     output_idx = find_statement(section, 'output')
     if output_idx is None:
         return step_output
 
-    # output statement
-    value = section.statements[output_idx][2]
-    # output, depends, and process can be processed multiple times
-    try:
-        svars = ['output_from', 'named_output', 'sos_step', 'sos_variable']
-        old_values = {
-            x: env.sos_dict.dict()[x]
-            for x in svars
-            if x in env.sos_dict.dict()
-        }
-        env.sos_dict.quick_update({
-            'output_from': no_output_from,
-            'named_output': no_named_output,
-            'sos_step': no_sos_step,
-            'sos_variable': no_sos_variable,
-        })
-        args, kwargs = SoS_eval(
-            f'__null_func__({value})', extra_dict=env.sos_dict.dict())
-        if not any(isinstance(x, (dynamic, remote)) for x in args):
-            step_output = sos_targets(
-                *args, **{
-                    x: y
-                    for x, y in kwargs.items()
-                    if x not in SOS_TARGETS_OPTIONS
-                })
-        # 1336, add named_output directly
-        if kwargs:
-            step_output.extend(named_output(x) for x in kwargs.keys())
-    except SyntaxError:
-        raise
-    except Exception as e:
-        if 'STEP' in env.config['SOS_DEBUG'] or 'ALL' in env.config['SOS_DEBUG']:
-            env.log_to_file('STEP', f"Args {value} cannot be determined: {e}")
-    finally:
-        [env.sos_dict.dict().pop(x) for x in svars]
-        env.sos_dict.quick_update(old_values)
+    # if the step is referred to by named_output, sos_step etc, we do not
+    # care about their output. In terms of bug #1379, perhaps the step would
+    # be added to the DAG multiple times, it will be run only once.
+    if default_output is None or all(
+            isinstance(x, sos_step) for x in default_output):
+        return step_output
 
-    if 'provides' in section.options and default_output is not None and step_output.valid(
-    ):
+    # # if the output is of type named_output, we do not need to care about
+    # # the exact output either. We just need to check if there are other
+    # # named output
+    # n_args, name_kwargs = get_num_of_args_and_names_of_kwargs(
+    #     section.statements[output_idx][2])
+    # name_kwargs = [x for x in name_kwargs if x not in SOS_TARGETS_OPTIONS]
+
+    # if n_args == 0 and all(isinstance(x, named_output) for x in default_output):
+    #     return [named_output(x) for x in name_kwargs]
+
+    # now, if we are referred by a filename, we have to figure out what
+    # these filenames are... if there is only one argument, let us
+    # be lazy and assume that the output is the one we want.. Note that
+    # we are assuming that the step does not have any substep.
+    # if n_args + len(name_kwargs) == 1:
+    #     return step_output
+
+    # if we do have output, we have to evaluate starting from input...
+    for statement in section.statements[:output_idx + 1]:
+        if statement[1] == 'depends':
+            continue
+        if statement[0] == '!' and analysis_type == 'backward':
+            try:
+                SoS_exec(statement[1], return_result=False)
+                continue
+            except Exception as e:
+                raise f'Failed to evaluate an statement "{value}" of an auxiliary step: {e}'
+
+        if statement[1] == 'input' and analysis_type != 'backward':
+            continue
+
+        value = statement[2]
+        try:
+            svars = ['output_from', 'named_output', 'sos_step', 'sos_variable']
+            old_values = {
+                x: env.sos_dict.dict()[x]
+                for x in svars
+                if x in env.sos_dict.dict()
+            }
+            env.sos_dict.quick_update({
+                'output_from': no_output_from,
+                'named_output': no_named_output,
+                'sos_step': no_sos_step,
+                'sos_variable': no_sos_variable,
+            })
+            args, kwargs = SoS_eval(
+                f'__null_func__({value})', extra_dict=env.sos_dict.dict())
+            if any(isinstance(x, (dynamic, remote)) for x in args):
+                raise ValueError(
+                    f'Auxiliary step does not allow dynamic or remote input or output: {value} provided'
+                )
+            if statement[1] == 'input':
+                step_input = sos_targets(
+                    *args, **{
+                        x: y
+                        for x, y in kwargs.items()
+                        if x not in SOS_TARGETS_OPTIONS
+                    })
+                env.sos_dict.set('_input', step_input)
+                env.sos_dict.set('step_input', step_input)
+            else:
+                step_output = sos_targets(
+                    *args, **{
+                        x: y
+                        for x, y in kwargs.items()
+                        if x not in SOS_TARGETS_OPTIONS
+                    })
+        except SyntaxError:
+            raise
+        except Exception as e:
+            if analysis_type == 'backward':
+                raise RuntimeError(
+                    f'Failed to determine input "{value}" of an auxiliary step: {e}'
+                )
+            elif 'STEP' in env.config['SOS_DEBUG'] or 'ALL' in env.config[
+                    'SOS_DEBUG']:
+                env.log_to_file('STEP',
+                                f"Args {value} cannot be determined: {e}")
+        finally:
+            [env.sos_dict.dict().pop(x) for x in svars]
+            env.sos_dict.quick_update(old_values)
+
+    if 'provides' in section.options and default_output is not None:
         for out in default_output:
             # 981
             if not isinstance(out, sos_step) and out not in step_output:
@@ -534,10 +596,11 @@ def get_output_from_steps(stmt, last_step):
 def analyze_section(section: SoS_Step,
                     default_input: Optional[sos_targets] = None,
                     default_output: Optional[sos_targets] = None,
-                    context={},
-                    vars_and_output_only: bool = False) -> Dict[str, Any]:
+                    context=None,
+                    analysis_type='initial') -> Dict[str, Any]:
     '''Analyze a section for how it uses input and output, what variables
     it uses, and input, output, etc.'''
+
     # analysis_key = (section.md5, section.step_name(),
     #     default_input.target_name() if hasattr(default_input, 'target_name') else '',
     #     default_output.target_name() if hasattr(default_output, 'target_name') else '', vars_and_output_only)
@@ -547,7 +610,8 @@ def analyze_section(section: SoS_Step,
     # use a fresh env for analysis
     new_env, old_env = env.request_new()
     try:
-        prepare_env(section.global_def, section.global_vars, context)
+        prepare_env(section.global_def, section.global_vars,
+                    {} if context is None else context)
 
         env.sos_dict.set('step_name', section.step_name())
         env.sos_dict.set('__null_func__', __null_func__)
@@ -558,14 +622,19 @@ def analyze_section(section: SoS_Step,
             )
 
         res = {
-            'step_name': section.step_name(),
-            'step_output': get_step_output(section, default_output),
+            'step_name':
+                section.step_name(),
+            'step_output':
+                get_step_output(section, default_output, analysis_type),
             # variables starting with __ are internals...
-            'environ_vars': get_environ_vars(section),
-            'signature_vars': get_signature_vars(section),
-            'changed_vars': get_changed_vars(section)
+            'environ_vars':
+                get_environ_vars(section),
+            'signature_vars':
+                get_signature_vars(section),
+            'changed_vars':
+                get_changed_vars(section)
         }
-        if not vars_and_output_only:
+        if analysis_type != 'initial':
             inps = get_step_input(section, default_input)
             res['step_input'] = inps[0]
             res['dynamic_input'] = inps[1]

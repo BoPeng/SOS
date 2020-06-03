@@ -1931,43 +1931,6 @@ assert(step_input.labels == ['K']*8)
             wf = script.workflow(wf)
             Base_Executor(wf).run()
 
-    def testNamedOutput(self):
-        '''Testing named_output input function'''
-        script = SoS_Script('''\
-
-[A]
-input: for_each=dict(i=range(4))
-output: aa=f'a_{i}.txt', bb=f'b_{i}.txt'
-_output.touch()
-
-[B]
-input: named_output('aa')
-assert(len(step_input.groups) == 4)
-assert(len(step_input) == 4)
-assert(step_input.labels == ['aa']*4)
-assert(step_input.groups[0] == 'a_0.txt')
-assert(step_input.groups[3] == 'a_3.txt')
-
-[C]
-input: K=named_output('bb')
-assert(len(step_input.groups) == 4)
-assert(len(step_input) == 4)
-assert(step_input.labels == ['K']*4)
-assert(step_input.groups[0] == 'b_0.txt')
-assert(step_input.groups[3] == 'b_3.txt')
-
-[D]
-input: K=named_output('bb', group_by=2)
-assert(len(step_input.groups) == 2)
-assert(len(step_input) == 4)
-assert(step_input.labels == ['K']*4)
-assert(step_input.groups[1] == ['b_2.txt', 'b_3.txt'])
-
-''')
-        for wf in ('B', 'C', 'D'):
-            wf = script.workflow(wf)
-            Base_Executor(wf).run()
-
     def testNamedOutput1336(self):
         'Test issue 1336'
         execute_workflow('''
@@ -2088,27 +2051,6 @@ assert(gvar == _index)
 assert(_input.gvar == _index)
 assert(_input.tvar == _index)
 assert(_input[0].tvar == _index)
-''')
-        wf = script.workflow()
-        Base_Executor(wf).run()
-
-    def testAutoProvide(self):
-        '''Testing steps to provide plain output'''
-        script = SoS_Script('''\
-[global]
-
-a = 'a.txt'
-
-[b]
-output: a
-_output.touch()
-
-[default]
-
-input: a
-output: f"{file_target(a):n}.out"
-
-_output.touch()
 ''')
         wf = script.workflow()
         Base_Executor(wf).run()
@@ -2809,3 +2751,59 @@ def test_interpolation_4(temp_factory):
     assert env.sos_dict['res'] == [
         'aa_1_process.txt', 'ab_2_process.txt', 'ac_2_process.txt'
     ]
+
+
+def test_named_output(script_factory):
+    '''Testing named_output input function'''
+    script = script_factory('''r
+[A]
+input: for_each=dict(i=range(4))
+output: aa=f'a_{i}.txt', bb=f'b_{i}.txt'
+_output.touch()
+
+[B]
+input: named_output('aa')
+assert(len(step_input.groups) == 4)
+assert(len(step_input) == 4)
+assert(step_input.labels == ['aa']*4)
+assert(step_input.groups[0] == 'a_0.txt')
+assert(step_input.groups[3] == 'a_3.txt')
+
+[C]
+input: K=named_output('bb')
+assert(len(step_input.groups) == 4)
+assert(len(step_input) == 4)
+assert(step_input.labels == ['K']*4)
+assert(step_input.groups[0] == 'b_0.txt')
+assert(step_input.groups[3] == 'b_3.txt')
+
+[D]
+input: K=named_output('bb', group_by=2)
+assert(len(step_input.groups) == 2)
+assert(len(step_input) == 4)
+assert(step_input.labels == ['K']*4)
+assert(step_input.groups[1] == ['b_2.txt', 'b_3.txt'])
+
+    ''')
+    for wf in ('B', 'C', 'D'):
+        execute_workflow(script, workflow=wf)
+
+
+def test_auto_provide(self):
+    '''Testing steps to provide plain output'''
+    execute_workflow('''
+        [global]
+
+        a = 'a.txt'
+
+        [b]
+        output: a
+        _output.touch()
+
+        [default]
+
+        input: a
+        output: f"{file_target(a):n}.out"
+
+        _output.touch()
+        ''')

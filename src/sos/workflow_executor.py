@@ -387,7 +387,7 @@ class Base_Executor:
         env.sos_dict.quick_update(self.shared)
 
     def analyze_auxiliary_step(self, section):
-        res = analyze_section(section, vars_and_output_only=True)
+        res = analyze_section(section, analysis_type='initial')
         environ_vars = res['environ_vars']
         signature_vars = res['signature_vars']
         changed_vars = res['changed_vars']
@@ -686,7 +686,8 @@ class Base_Executor:
         default_input: sos_targets = sos_targets([])
         for idx, section in enumerate(sections):
             #
-            res = analyze_section(section, default_input=default_input)
+            res = analyze_section(
+                section, default_input=default_input, analysis_type='forward')
 
             environ_vars = res['environ_vars']
             signature_vars = res['signature_vars']
@@ -748,7 +749,8 @@ class Base_Executor:
         res = analyze_section(
             section,
             default_output=env.sos_dict['__default_output__'],
-            context=context)
+            context=context,
+            analysis_type='backward')
         if isinstance(target,
                       sos_step) and target.target_name() != section.step_name():
             # sos_step target "name" can be matched to "name_10" etc so we will have to

@@ -5,6 +5,7 @@
 
 import glob
 import os
+import pytest
 import sys
 import shutil
 import subprocess
@@ -2538,58 +2539,6 @@ _output.touch()
             self.assertFalse(os.path.isfile(f'test_{i}.bak'))
         self.assertFalse(os.path.isfile(f'test_1.txt'))
 
-    def testErrorHandlingOfMissingInput(self):
-        # finishing another step if currently missing
-        def cleanup():
-            if os.path.isfile('11.txt'):
-                os.remove('11.txt')
-            if os.path.isfile('22.txt'):
-                os.remove('22.txt')
-
-        script = SoS_Script(r"""
-import time
-
-[10]
-time.sleep(8)
-
-[11]
-output: '11.txt'
-_output.touch()
-
-[20]
-input: None
-time.sleep(2)
-
-[21]
-input: 'no_existent.txt'
-
-[22]
-output: '22.txt'
-_output.touch()
-""")
-        #
-        # default mode
-        #
-        wf = script.workflow()
-        cleanup()
-
-        st = time.time()
-        self.assertRaises(Exception, Base_Executor(wf).run)
-        self.assertTrue(
-            time.time() - st >= 8,
-            'Test test should fail only after step 10 is completed')
-        self.assertTrue(os.path.isfile('11.txt'))
-        #
-        # ignore mode,
-        # step 22 should be executed but immediately stopped due to error
-        #
-        cleanup()
-        Base_Executor(wf, config={'error_mode': 'ignore'}).run()
-        self.assertTrue(
-            time.time() - st >= 8,
-            'Test test should fail only after step 10 is completed')
-        self.assertFalse(os.path.isfile('22.txt'))
-
 
 def test_stmt_before_input(clear_now_and_after):
     '''Bug #1270, if there is any statement before input, the step will be undetermined'''
@@ -2807,3 +2756,46 @@ def test_auto_provide(self):
 
         _output.touch()
         ''')
+
+
+def test_error_handling_of_missing_input(clear_now_and_after):
+    # finishing another step if currently missing
+    clear_now_and_after('11.txt', '22.txt')
+
+    st = time.time()
+
+    script = """
+        import time
+
+        [10]
+        time.sleep(8)
+
+        [11]
+        output: '11.txt'
+        _output.touch()
+
+        [20]
+        input: None
+        time.sleep(2)
+
+        [21]
+        input: 'no_existent.txt'
+
+        [22]
+        output: '22.txt'
+        _output.touch()
+        """
+    with pytest.raises(Exception):
+        execute_workflow(script)
+
+    assert time.time(
+    ) - st >= 8, 'Test test should fail only after step 10 is completed'
+    assert os.path.isfile('11.txt')
+
+    clear_now_and_after('11.txt', '22.txt')
+
+    execute_workflow(script, options={'error_mode': 'ignore'})
+
+    assert time.time(
+    ) - st >= 8, 'Test test should fail only after step 10 is completed'
+    assert not os.path.isfile('22.txt')

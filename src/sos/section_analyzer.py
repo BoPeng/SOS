@@ -618,7 +618,7 @@ def analyze_section(section: SoS_Step,
         if 'STEP' in env.config['SOS_DEBUG'] or 'ALL' in env.config['SOS_DEBUG']:
             env.log_to_file(
                 'STEP',
-                f'Analyzing {section.step_name()} {"(output only)" if vars_and_output_only else ""}'
+                f'Analyzing {section.step_name()} {"(output only)" if analysis_type == "initial" else ""}'
             )
 
         res = {

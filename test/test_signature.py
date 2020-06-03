@@ -48,7 +48,7 @@ class TestSignature(unittest.TestCase):
             shutil.rmtree(os.path.expanduser(dirname))
         os.mkdir(os.path.expanduser(dirname))
 
-    def testSignature(self):
+    def test_signature(self):
         self._testSignature(
             r"""
 [*_0]
@@ -65,7 +65,7 @@ output: _dest
 run(f" cp {_input} {_dest[0]} ")
 """, 2)
 
-    def testSignature1(self):
+    def test_signature1(self):
         self._testSignature(
             r"""
 [*_0]
@@ -84,7 +84,7 @@ run(f" cp {_input} {_dest[0]} ")
 """, 2)
         # script format
 
-    def testSignature2(self):
+    def test_signature2(self):
         self._testSignature(
             r"""
 [*_0]
@@ -108,7 +108,7 @@ echo cp {_input} {_dest[0]}
 cp {_input} {_dest[0]}
 """, 2)
 
-    def testSignatureWithSharedVariable(self):
+    def test_signature_with_shared_variable(self):
         '''Test restoration of signature from variables.'''
         if file_target('a.txt').exists():
             file_target('a.txt').unlink()
@@ -135,7 +135,7 @@ print(a)
         self.assertEqual(res['__completed__']['__step_completed__'], 1)
         file_target('a.txt').unlink()
 
-    def testSignatureWithoutOutput(self):
+    def test_signature_without_output(self):
         # signature without output file
         self._testSignature(
             r"""
@@ -226,7 +226,7 @@ cp {_input} {_dest[0]}
         #env.config['sig_mode'] = 'assert'
         #self.assertRaises(Exception, Base_Executor(wf).run)
 
-    def testReexecution(self):
+    def test_reexecution(self):
         '''Test -f option of sos run'''
         script = SoS_Script('''
 
@@ -260,7 +260,7 @@ run(f"touch {_output}")
 
     @unittest.skipIf(sys.platform == 'win32',
                      'Windows executable cannot execute bash loop.')
-    def testSignatureAfterRemovalOfFiles(self):
+    def test_signature_after_removal_of_files(self):
         '''test action shrink'''
         if os.path.isfile('largefile.txt'):
             os.remove('largefile.txt')
@@ -302,7 +302,7 @@ run: expand='${ }'
 
     @unittest.skipIf(sys.platform == 'win32',
                      'Windows executable cannot be created with chmod.')
-    def testRemovalOfIntermediateFiles(self):
+    def test_removal_of_intermediate_files(self):
         # if we zap the file, it
         for f in ['midfile.txt', 'finalfile.txt', 'midfile.txt.zapped']:
             if os.path.isfile(f):
@@ -350,7 +350,7 @@ run: expand=True
         res = Base_Executor(wf).run()
         self.assertEqual(res['__completed__']['__step_completed__'], 0)
 
-    def testSignatureWithParameter(self):
+    def test_signature_with_parameter(self):
         '''Test signature'''
         if file_target('myfile.txt').exists():
             file_target('myfile.txt').unlink()
@@ -418,7 +418,7 @@ run: expand=True
             self.assertEqual(tmp.read().strip(), '20')
         file_target('myfile.txt').unlink()
 
-    def testLoopWiseSignature(self):
+    def test_loop_wise_signature(self):
         '''Test partial signature'''
         for i in range(10, 12):
             if file_target(f'myfile_{i}.txt').exists():
@@ -487,7 +487,7 @@ run: expand=True
                 self.assertEqual(tmp.read().strip(), str(t))
             file_target('myfile_{}.txt'.format(t)).unlink()
 
-    def testOutputFromSignature(self):
+    def test_output_from_signature(self):
         'Test restoration of output from signature' ''
         self.touch(['1.txt', '2.txt'])
         for f in ('1.out', '2.out', '1.2.out', '2.3.out'):
@@ -518,7 +518,7 @@ run: expand=True
         for file in ['1.out', '2.out', '1.2.out', '2.3.out']:
             file_target(file).unlink()
 
-    def testSignatureWithVars(self):
+    def test_signature_with_vars(self):
         '''Test revaluation with variable change'''
         self.touch(('a1.out', 'a2.out'))
         for f in ('b1.out', 'b2.out'):
@@ -556,7 +556,7 @@ run: expand=True
         self.assertEqual(res['__completed__']['__step_completed__'], 0.5)
         self.assertEqual(ts, os.path.getmtime('b1.out'))
 
-    def testActionSignature(self):
+    def test_action_signature(self):
         '''Test action signature'''
         with open('test_action.txt', 'w') as ta:
             ta.write('#something\n')
@@ -592,7 +592,7 @@ run: output='lc.txt', expand=True, tracked='test_action.txt'
         env.config['sig_mode'] = 'build'
         Base_Executor(wf).run()
 
-    def testSignatureWithWithoutTask(self):
+    def test_signature_with_without_task(self):
         '''Test the inclusion of task would not trigger rerun'''
         script = SoS_Script(r'''[1]
 output: 'aa'
@@ -620,7 +620,7 @@ sh:
         res = Base_Executor(wf, config={'default_queue': 'localhost'}).run()
         self.assertEqual(res['__completed__']['__step_completed__'], 0)
 
-    def testSignatureWithDynamicOutput(self):
+    def test_signature_with_dynamic_output(self):
         '''Test return of output from dynamic output'''
         for i in range(5):
             if os.path.exists(f'rep_{i}'):
@@ -645,7 +645,7 @@ path(f'rep_{i}/{random.randint(0, 10000)}.res').touch()
         self.assertEqual(files, files_again)
         self.assertEqual(res['__completed__']['__substep_completed__'], 0)
 
-    def testIgnoreSignature(self):
+    def test_ignore_signature(self):
         '''Test ignore signature mode #1028 '''
         script = SoS_Script(r'''
 input: for_each={'i': range(3)}, concurrent=True
@@ -658,7 +658,7 @@ sh: expand=True
         Base_Executor(wf).run()
         env.config['sig_mode'] = 'default'
 
-    def testRebuidSignature(self):
+    def test_rebuid_signature(self):
         '''Test rebuilding signature'''
         if os.path.isfile('a.txt'):
             os.remove('a.txt')
@@ -699,7 +699,7 @@ _output.touch()
         res = Base_Executor(wf).run()
         self.assertEqual(res['__completed__']['__substep_completed__'], 1)
 
-    def testRebuidSignatureWithSubsteps(self):
+    def test_rebuid_signature_with_substeps(self):
         '''Test rebuilding signature'''
         for i in range(4):
             if os.path.isfile(f'a_{i}.txt'):
@@ -743,7 +743,7 @@ _output.touch()
         res = Base_Executor(wf).run()
         self.assertEqual(res['__completed__']['__substep_completed__'], 4)
 
-    def testRebuidSignatureWithTasks(self):
+    def test_rebuid_signature_with_tasks(self):
         '''Test rebuilding signature'''
         for i in range(4):
             if os.path.isfile(f'a_{i}.txt'):
@@ -788,7 +788,7 @@ _output.touch()
         res = Base_Executor(wf).run()
         self.assertEqual(res['__completed__']['__substep_completed__'], 2)
 
-    def testSignatureWithDependencyTracingAndVars(self):
+    def test_signature_with_dependency_tracing_and_vars(self):
         '''Test signature with parameters with option -T #1200'''
         if os.path.isfile('out.txt'):
             os.remove('out.txt')
@@ -815,7 +815,7 @@ input: 'out.txt'
             }, args=['--par', '20']).run()
         self.assertEqual(res['__completed__']['__substep_completed__'], 2)
 
-    def testSkipMode(self):
+    def test_skip_mode(self):
         '''Test skipping mode of signature'''
         for i in range(4):
             with open(f'a_{i}.txt', 'w') as a:
@@ -856,7 +856,7 @@ with open(_input) as ifile, open(_output, 'w') as ofile:
         res = Base_Executor(wf).run()
         self.assertEqual(res['__completed__']['__substep_completed__'], 4)
 
-    def testSignatureWithOutputVars(self):
+    def test_signature_with_output_vars(self):
         '''Test persistence of _output with vars #1355'''
         if os.path.isfile('test_sig_with_vars.txt'):
             os.remove('test_sig_with_vars.txt')

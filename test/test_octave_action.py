@@ -23,7 +23,7 @@ class TestActions(unittest.TestCase):
             file_target(f).unlink()
 
     @unittest.skipIf(not shutil.which('octave'), 'Octave not installed')
-    def testOctave(self):
+    def test_octave(self):
         '''Test action octave'''
         if os.path.isfile('octave_example.txt'):
             os.remove('octave_example.txt')

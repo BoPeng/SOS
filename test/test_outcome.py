@@ -51,7 +51,7 @@ class TestOutcome(unittest.TestCase):
             if os.path.isfile(target):
                 os.remove(target)
 
-    def testPlainTarget(self):
+    def test_plain_target(self):
         '''Test sos run -t filename'''
         self.removeIfExists('t_a.txt')
         script = SoS_Script('''
@@ -63,7 +63,7 @@ _output.touch()
         Base_Executor(wf).run(targets=['t_a.txt'])
         self.assertTrue(os.path.isfile('t_a.txt'))
 
-    def testTargetInNamed(self):
+    def test_target_in_named(self):
         '''Test sos run -t filename'''
         self.removeIfExists('t_na.txt')
         script = SoS_Script('''
@@ -75,7 +75,7 @@ _output.touch()
         Base_Executor(wf).run(targets=['t_na.txt'])
         self.assertTrue(os.path.isfile('t_na.txt'))
 
-    def testNamedOutputAsTarget(self):
+    def test_named_output_as_target(self):
         '''Test sos run -t named_output'''
         self.removeIfExists('t_no.txt')
         script = SoS_Script('''
@@ -87,7 +87,7 @@ _output.touch()
         Base_Executor(wf).run(targets=['res'])
         self.assertTrue(os.path.isfile('t_no.txt'))
 
-    def testProvidesTarget(self):
+    def test_provides_target(self):
         '''Test sos run -t filename with exact match'''
         self.removeIfExists('t_pa.txt')
         script = SoS_Script('''
@@ -128,7 +128,7 @@ _output.touch()
         self.assertRaises(
             Exception, Base_Executor(wf).run, targets=['t_pa.txt'])
 
-    def testProvidesPattern(self):
+    def test_provides_pattern(self):
         '''Test sos run -t filename with pattern matching'''
         self.removeIfExists('t_ma.txt')
         script = SoS_Script('''

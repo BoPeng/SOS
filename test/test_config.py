@@ -48,7 +48,7 @@ class TestConfig(unittest.TestCase):
             shutil.rmtree(os.path.expanduser(dirname))
         os.mkdir(os.path.expanduser(dirname))
 
-    def testCommandLine(self):
+    def test_command_line(self):
         '''Test command line arguments'''
         self.assertEqual(
             subprocess.call(
@@ -93,7 +93,7 @@ class TestConfig(unittest.TestCase):
                 stdout=subprocess.DEVNULL,
                 shell=True), 0)
 
-    def testConfigSet(self):
+    def test_config_set(self):
         '''Test interpolation of config'''
         self.assertEqual(
             subprocess.call(
@@ -140,7 +140,7 @@ class TestConfig(unittest.TestCase):
         load_config_files('myconfig.yml')
         self.assertEqual(env.sos_dict['CONFIG']['cut4'], {'A': 123})
 
-    def testInterpolate(self):
+    def test_interpolate(self):
         '''Test interpolation of config'''
         self.assertEqual(
             subprocess.call(

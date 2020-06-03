@@ -42,7 +42,7 @@ class TestTarget(unittest.TestCase):
         #
         self.temp_files.extend(files)
 
-    def testTargetLabel(self):
+    def test_target_label(self):
         '''Test labels of sos_targets'''
         a = sos_targets('a')
         self.assertEqual(a.labels, [''])
@@ -77,7 +77,7 @@ class TestTarget(unittest.TestCase):
         self.assertEqual(len(res_a.groups[2]), 0)
         self.assertEqual(len(res_a.groups[3]), 0)
 
-    def testRemoveTargets(self):
+    def test_remove_targets(self):
         '''Test sos_target.remove_targets()'''
         a = sos_targets(sos_step('1'), 'a.txt')._group(by=1)
         a.remove_targets(type=sos_step)
@@ -88,7 +88,7 @@ class TestTarget(unittest.TestCase):
         self.assertEqual(a._groups[1]._indexes, [0])
         self.assertEqual(len(a._groups[1]._labels), 1)
 
-    def testSoSTargetsSignature(self):
+    def test_so_s_targets_signature(self):
         '''Test save and validate signatures of sos_targets'''
         with open('a.txt', 'w') as a:
             a.write('text1')
@@ -104,7 +104,7 @@ class TestTarget(unittest.TestCase):
         t.set('cc', 'another string')
         self.assertTrue(t.validate(sig))
 
-    def testTargetSetGet(self):
+    def test_target_set_get(self):
         '''Test set and get attributes from targets'''
         a = file_target('a')
         a.set(b=1)
@@ -112,7 +112,7 @@ class TestTarget(unittest.TestCase):
         self.assertEqual(a.get('b'), 1)
         self.assertRaises(Exception, a.set, 'touch', 1)
 
-    def testTargetGroupBy(self):
+    def test_target_group_by(self):
         '''Test new option group_by to sos_targets'''
         res = sos_targets(
             'e.txt',
@@ -126,7 +126,7 @@ class TestTarget(unittest.TestCase):
         res = sos_targets(res, group_by=2)
         self.assertEqual(len(res.groups), 3)
 
-    def testTargetPairedWith(self):
+    def test_target_paired_with(self):
         '''Test paired_with targets with vars'''
         res = sos_targets(
             'e.txt',
@@ -146,7 +146,7 @@ class TestTarget(unittest.TestCase):
                           sos_targets('e.txt', 'f.ext').paired_with, 'name',
                           ['e', 'f', 'a', 'b', 'c', 'd'])
 
-    def testTargetGroupWith(self):
+    def test_target_group_with(self):
         '''Test group_with targets with vars'''
         res = sos_targets(
             'e.txt',
@@ -166,7 +166,7 @@ class TestTarget(unittest.TestCase):
                           sos_targets('e.txt', 'f.ext', group_by=1).group_with,
                           'name', ['e', 'f', 'g'])
 
-    def testGroupWithWithNoOutput(self):
+    def test_group_with_with_no_output(self):
         execute_workflow(r'''
 [10]
 input: for_each=dict(i=range(3))
@@ -177,7 +177,7 @@ print(i)
 print(f'Input is {_input} {var}')
 ''')
 
-    def testMergingOfSoSTargets(self):
+    def test_merging_of_so_s_targets(self):
         '''Test merging of multiple sos targets'''
         # merge 0 to 0
         res = sos_targets('a.txt', 'b.txt',
@@ -213,7 +213,7 @@ print(f'Input is {_input} {var}')
         self.assertEqual(res.groups[0], ['a1.txt', 'a2.txt', 'c.txt', 'd.txt'])
         self.assertEqual(res.groups[1], ['a3.txt', 'a4.txt', 'c.txt', 'd.txt'])
 
-    def testTargetFormat(self):
+    def test_target_format(self):
         '''Test string interpolation of targets'''
         for target, fmt, res in [
             ('a.txt', '', 'a.txt'),
@@ -238,14 +238,14 @@ print(f'Input is {_input} {var}')
                     "Interpolation of {}:{} should be one of {}".format(
                         target, fmt, res))
 
-    def testIterTargets(self):
+    def test_iter_targets(self):
         '''Test iterator interface of targets'''
         t = sos_targets('1', '2', ['3', '4'])
         self.assertEqual(len(t), 4)
         for idx, i in enumerate(t):
             self.assertEqual(str(i), str(idx + 1))
 
-    def testExpandWildcard(self):
+    def test_expand_wildcard(self):
         '''test wildcard expansion of sos_targets'''
         a = sos_targets('*.py')
         self.assertGreater(len(a), 1)
@@ -258,7 +258,7 @@ print(f'Input is {_input} {var}')
             shutil.rmtree(os.path.expanduser(dirname))
         os.mkdir(os.path.expanduser(dirname))
 
-    def testShared(self):
+    def test_shared(self):
         '''Test option shared'''
         script = SoS_Script(r"""
 parameter: res = 1
@@ -378,7 +378,7 @@ a = _index**2
 #        self.assertTrue(os.path.isfile('tmp/a.txt'))
 #        shutil.rmtree('tmp')
 
-    def testDependsExecutable(self):
+    def test_depends_executable(self):
         '''Testing target executable.'''
         script = SoS_Script('''
 [0]
@@ -395,7 +395,7 @@ run:
 
     @unittest.skipIf(sys.platform == 'win32',
                      'Windows executable cannot be created with chmod.')
-    def testOutputExecutable(self):
+    def test_output_executable(self):
         '''Testing target executable.'''
         # change $PATH so that lls can be found at the current
         # directory.
@@ -418,7 +418,7 @@ run:
         if file_target('ls').exists():
             file_target('lls').unlink()
 
-    def testDependsEnvVariable(self):
+    def test_depends_env_variable(self):
         '''Testing target env_variable.'''
         if file_target('a.txt').exists():
             file_target('a.txt').unlink()
@@ -455,7 +455,7 @@ run:
 
     @unittest.skipIf(sys.platform == 'win32',
                      'Windows executable cannot be created with chmod.')
-    def testProvidesExecutable(self):
+    def test_provides_executable(self):
         '''Testing provides executable target.'''
         # change $PATH so that lls can be found at the current
         # directory.
@@ -476,7 +476,7 @@ depends: executable('lkls')
         Base_Executor(wf).run()
         file_target('lkls').unlink()
 
-    def testSharedVarInPairedWith(self):
+    def test_shared_var_in_paired_with(self):
         self.touch(['1.txt', '2.txt'])
         for file in ('1.out', '2.out', '1.out2', '2.out2'):
             if file_target(file).exists():
@@ -501,7 +501,7 @@ run: expand=True
             if file_target(file).exists():
                 file_target(file).unlink()
 
-    def testSharedVarInForEach(self):
+    def test_shared_var_in_for_each(self):
         self.touch(['1.txt', '2.txt'])
         for file in ('1.out', '2.out', '1.out2', '2.out2'):
             if file_target(file).exists():
@@ -524,7 +524,7 @@ run: expand=True
         wf = script.workflow()
         Base_Executor(wf).run()
 
-    def testRemovedDepends(self):
+    def test_removed_depends(self):
         '''Test a case where a dependent file has signature, but
         gets removed before the next run.'''
         script = SoS_Script('''
@@ -546,7 +546,7 @@ run:
         os.remove('b.txt')
         Base_Executor(wf).run()
 
-    def testSoSStep(self):
+    def test_so_s_step(self):
         '''Test target sos_step'''
         for file in ['t1.txt', 't2.txt', '5.txt', '10.txt', '20.txt']:
             if file_target(file).exists():
@@ -585,7 +585,7 @@ run:
             if file_target(file).exists():
                 file_target(file).unlink()
 
-    def testZap(self):
+    def test_zap(self):
         '''Test zap'''
         with open('testzap.txt', 'w') as sf:
             sf.write('some text')
@@ -622,7 +622,7 @@ run:
         self.assertTrue(os.path.isfile('testzap1.txt.zapped'))
         self.assertFalse(os.path.isfile('testzap1.txt'))
 
-    def testZapRun(self):
+    def test_zap_run(self):
         '''Test run with zapped input files'''
         with open('zap1.txt', 'w') as sf:
             sf.write('seomething')
@@ -647,7 +647,7 @@ _input.zap()
         os.remove('zap2.txt')
         self.assertRaises(Exception, Base_Executor(wf).run)
 
-    def testSystemResource(self):
+    def test_system_resource(self):
         '''Test targtet system_resource'''
         script = SoS_Script('''\
 [1: shared='a']
@@ -674,7 +674,7 @@ a = 1
         wf = script.workflow()
         self.assertRaises(Exception, Base_Executor(wf).run)
 
-    def testNamedPath(self):
+    def test_named_path(self):
         '''Test the use of option name of path'''
         script = SoS_Script('''
 import os
@@ -692,7 +692,7 @@ assert 'home' in path.names('docker')
                     os.path.join(os.path.expanduser('~'), 'docker.yml')
             }).run()
 
-    def testTempFile(self):
+    def test_temp_file(self):
         '''Test sos_tempfile target'''
         script = SoS_Script('''
 filename = sos_tempfile(name='a')

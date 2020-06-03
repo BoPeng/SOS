@@ -34,7 +34,7 @@ class TestSingularityActions(unittest.TestCase):
 
     @unittest.skipIf(not shutil.which('singularity'),
                      'Skip test because docker is not installed.')
-    def testBashInSingularity(self):
+    def test_bash_in_singularity(self):
         '''Test action bash in singularity environment'''
         script = SoS_Script(r'''
 [0]
@@ -47,7 +47,7 @@ echo 'Echo'
 
     @unittest.skipIf(not shutil.which('singularity') or sys.platform == 'win32'  or 'TRAVIS' in os.environ,
                      'Skip test because docker is not installed.')
-    def testSingularityBuildLinuxImage(self):
+    def test_singularity_build_linux_image(self):
         '''Test action singularity build, needs authentication so no travis test'''
         script = SoS_Script(r'''
 singularity_build: dest='lolcow.simg', sudo=True, notest=True
@@ -67,7 +67,7 @@ From: ubuntu:16.04
 
     @unittest.skipIf(not shutil.which('singularity') or sys.platform == 'win32' or 'TRAVIS' in os.environ,
                      'Skip test because docker is not installed.')
-    def testSingularityBuildFromShub(self):
+    def test_singularity_build_from_shub(self):
         # needs authentication and cannot test on travis
         script = SoS_Script(r'''
 singularity_build(src='shub://GodloveD/lolcow', dest='lolcow_shub.simg', sudo=True, notest=True, force=True)
@@ -77,7 +77,7 @@ singularity_build(src='shub://GodloveD/lolcow', dest='lolcow_shub.simg', sudo=Tr
 
     @unittest.skipIf(not shutil.which('singularity') or sys.platform == 'win32',
                      'Skip test because docker is not installed.')
-    def testSingularityBuildFromDocker(self):
+    def test_singularity_build_from_docker(self):
         script = SoS_Script(r'''
 singularity_build(src='docker://godlovedc/lolcow', dest='lolcow_docker.simg', sudo=True, notest=True, force=True)
 ''')

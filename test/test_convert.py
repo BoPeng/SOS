@@ -45,7 +45,7 @@ report('this is action report')
     def tearDown(self):
         shutil.rmtree('temp')
 
-    def testScriptToHtml(self):
+    def test_script_to_html(self):
         '''Test sos show script --html'''
         for script_file in self.scripts:
             self.assertEqual(
@@ -61,7 +61,7 @@ report('this is action report')
                 subprocess.call(['sos', 'convert', script_file, '--to',
                                  'html']), 0)
 
-    def testExtractWorkflow(self):
+    def test_extract_workflow(self):
         '''Test extract workflow from ipynb file'''
         content = extract_workflow('sample_workflow.ipynb')
         print(content)

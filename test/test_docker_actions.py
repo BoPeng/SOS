@@ -112,7 +112,7 @@ class TestDockerActions(unittest.TestCase):
 
     @unittest.skipIf(not has_docker or sys.platform == 'win32',
                      'Skip test because docker is not installed.')
-    def testBashInDocker(self):
+    def test_bash_in_docker(self):
         '''Test action bash in docker environment'''
         script = SoS_Script(r'''
 [0]
@@ -136,7 +136,7 @@ echo 'Echo'
 
     @unittest.skipIf(not has_docker or sys.platform == 'win32',
                      'Skip test because docker is not installed.')
-    def testShInDocker(self):
+    def test_sh_in_docker(self):
         '''Test action sh in docker environment'''
         # test docker
         script = SoS_Script(r'''
@@ -151,7 +151,7 @@ echo 'Echo
 
     @unittest.skipIf(not has_docker or sys.platform == 'win32',
                      'Skip test because docker is not installed.')
-    def testDockerBuildLinuxImage(self):
+    def test_docker_build_linux_image(self):
         '''Test action docker build'''
         script = SoS_Script(r'''
 [0]
@@ -185,7 +185,7 @@ WORKDIR /home
 
     @unittest.skipIf(not has_docker or sys.platform != 'win32',
                      'Skip test because docker is not installed.')
-    def testDockerBuildWindowsImage(self):
+    def test_docker_build_windows_image(self):
         '''Test action docker build'''
         script = SoS_Script(r'''
 [0]
@@ -202,7 +202,7 @@ MAINTAINER someone@microsoft.com
 
     @unittest.skipIf(not has_docker or sys.platform == 'win32',
                      'Skip test because docker is not installed.')
-    def testDockerImage(self):
+    def test_docker_image(self):
         '''Test docker_image option'''
         script = SoS_Script(r'''
 import os
@@ -225,7 +225,7 @@ run: container='docker://compbio/ngseasy-fastqc:1.0-r001',
         not has_docker or 'TRAVIS' in os.environ or sys.platform == 'win32',
         'Skip test because docker is not installed, or in travis, which failed for unknown reason'
     )
-    def testDockerImageFromFile(self):
+    def test_docker_image_from_file(self):
         '''Test docker_image load from a file.'''
         # image from a saved file
         script = SoS_Script(r'''
@@ -247,7 +247,7 @@ run: container='docker://blang/busybox-bash', docker_file = 'hello.tar'
 
     @unittest.skipIf(not has_docker or sys.platform == 'win32',
                      'Skip test because docker is not installed.')
-    def testDockerScriptAction(self):
+    def test_docker_script_action(self):
         '''Test action sh in docker environment'''
         # test docker
         script = SoS_Script(r'''
@@ -260,7 +260,7 @@ echo 'Echo'
 
     @unittest.skipIf(not has_docker or sys.platform == 'win32',
                      'Skip test because docker is not installed.')
-    def testPortOption(self):
+    def test_port_option(self):
         '''Test use of option port in action'''
         script = SoS_Script(r'''
 [0]

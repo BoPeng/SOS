@@ -92,7 +92,7 @@ class TestParser(unittest.TestCase):
         #
         self.temp_files.extend(files)
 
-    def testFileFormat(self):
+    def test_file_format(self):
         '''Test recognizing the format of SoS script'''
         # file format must be 'fileformat=SOSx.x'
         self.assertRaises(ParsingError, SoS_Script, '#fileformat=SS2')
@@ -103,7 +103,7 @@ class TestParser(unittest.TestCase):
         # not the default value of 1.0
         #self.assertEqual(script.format_version, '1.1')
 
-    def testWorkflows(self):
+    def test_workflows(self):
         '''Test workflows defined in SoS script'''
         script = SoS_Script('''[0]''')
         self.assertEqual(sorted(script.workflows), [''])
@@ -129,7 +129,7 @@ class TestParser(unittest.TestCase):
         script.workflow('proc-1')
         script.workflow('proc-1 + test-case:2')
 
-    def testSections(self):
+    def test_sections(self):
         '''Test section definitions'''
         # bad names
         for badname in ['56_1', '_a', 'a_', '1x', '*', '?']:
@@ -157,12 +157,12 @@ class TestParser(unittest.TestCase):
         # global section
         self.assertRaises(ParsingError, SoS_Script, '''[global, step_10]''')
 
-    def testParameters(self):
+    def test_parameters(self):
         '''Test ending parameters with new line #1311'''
         self.assertRaises(ParsingError, SoS_Script,
                           '''input: ['a.txt'\n\n'b.txt']\n''')
 
-    def testGlobalVariables(self):
+    def test_global_variables(self):
         '''Test definition of variables'''
         # allow definition
         SoS_Script('''a = '1' ''')
@@ -201,7 +201,7 @@ print(a)
         wf = script.workflow()
         Base_Executor(wf).run()
 
-    def testParameters(self):
+    def test_parameters(self):
         '''Test parameters section'''
         # directive not allowed in parameters
         script = SoS_Script(section1_sos)
@@ -511,7 +511,7 @@ parameter: c_b = list
         wf = script.workflow()
         self.assertEqual(sorted(list(wf.parameters().keys())), ['a_b', 'c_b'])
 
-    def testParamInTask(self):
+    def test_param_in_task(self):
         '''Test specification of parameters in tasks'''
         self.assertRaises(
             Exception, SoS_Script, '''\
@@ -531,7 +531,7 @@ parameter: c_b = list
         wf = script.workflow()
         self.assertEqual(sorted(list(wf.parameters().keys())), ['a_b', 'c_b'])
 
-    def testTypeTraitParameter(self):
+    def test_type_trait_parameter(self):
         # type trait
         script = SoS_Script('''
 parameter: b
@@ -574,7 +574,7 @@ parameter: b : int
         Base_Executor(wf, args=['--b', '5']).run(mode='dryrun')
         self.assertEqual(env.sos_dict['b'], 5)
 
-    def testInputTarget(self):
+    def test_input_target(self):
         # test input of targets
         script = SoS_Script('''
 parameter: b : file_target
@@ -708,7 +708,7 @@ parameter: a_b = paths('file')
         self.assertEqual(env.sos_dict['a_b'].__class__.__name__, 'paths')
         #
 
-    def testSectionDirectives(self):
+    def test_section_directives(self):
         '''Test directives of sections'''
         # cannot be in the global section
         # multi-line OK
@@ -768,7 +768,7 @@ abc
 output: 'filename',  'filename2', opt=value==1
 ''')
 
-    def testScriptFormat(self):
+    def test_script_format(self):
         '''Test putting scripts directly under action'''
         script = SoS_Script('''
 [0]
@@ -865,7 +865,7 @@ report: expand = "${ }"
         wf = script.workflow()
         Base_Executor(wf).run()
 
-    def testInput(self):
+    def test_input(self):
         '''Test input directive'''
         self.touch(['a.txt', 'b.txt', 'a.pdf', 'a0', 'a1'])
         script = SoS_Script('''
@@ -895,7 +895,7 @@ output: (f"a{x}" for x in _input)
             sorted(env.sos_dict['o']),
             sos_targets(['aa.txt', 'aa0', 'aa1', 'ab.txt']))
 
-    def testGroupBy(self):
+    def test_group_by(self):
         '''Test group_by parameter of step input'''
         # group_by = 'all'
         self.touch(['a{}.txt'.format(x) for x in range(15)])
@@ -1260,7 +1260,7 @@ executed.append(_input)
             env.sos_dict['executed'],
             [['a0.txt', 'a3.txt'], ['a1.txt', 'a4.txt'], ['a2.txt', 'a5.txt']])
 
-    def testOutputGroupBy(self):
+    def test_output_group_by(self):
         '''Test group_by parameter of step output'''
         # group_by = 'all'
         self.touch(['a{}.txt'.format(x) for x in range(4)])
@@ -1282,7 +1282,7 @@ executed.append(_output)
             sos_targets('a2.txt.bak', 'a3.txt.bak')
         ])
 
-    def testStepsWithStepName(self):
+    def test_steps_with_step_name(self):
         '''Test from steps'''
         script = SoS_Script('''
 [step_10]
@@ -1310,7 +1310,7 @@ print(_input)
         wf = script.workflow()
         Base_Executor(wf).run()
 
-    def testSectionActions(self):
+    def test_section_actions(self):
         '''Test actions of sections'''
         SoS_Script("""
 [0]
@@ -1324,7 +1324,7 @@ string''', with_option=1
 func(
 ''')
 
-    def testLongerCode(self):
+    def test_longer_code(self):
         '''Test definition of classes (with intermediate newlines) in step.'''
         script = SoS_Script('''# first block
 
@@ -1345,7 +1345,7 @@ b = A()()
         Base_Executor(wf).run()
         self.assertEqual(env.sos_dict['b'], 0)
 
-    def testCombinedWorkflow(self):
+    def test_combined_workflow(self):
         '''Test the creation and execution of combined workfow'''
         script = SoS_Script('''
 a0 = 0
@@ -1395,7 +1395,7 @@ executed.append(step_name)
         self.assertEqual(env.sos_dict['executed'],
                          ['a_1', 'a_2', 'a_3', 'a_4', 'c', 'd'])
 
-    def testYAMLConfig(self):
+    def test_yaml_config(self):
         '''Test config file in yaml format'''
         with open('myconfig.yml', 'w') as config:
             config.write('''
@@ -1433,7 +1433,7 @@ print(CONFIG.get('StoreOwnerSpouse', 'someone else'))
         self.assertEqual(env.sos_dict['CONFIG']['Fruits'],
                          ['apple', 'banana', 'pear'])
 
-    def testVarOutput(self):
+    def test_var_output(self):
         '''Test early appearance of variable output'''
         script = SoS_Script('''
 [0]
@@ -1446,7 +1446,7 @@ print(_output)
         # this does not work before until we make variable output available sooner
         Base_Executor(wf).run(mode='dryrun')
 
-    def testCell(self):
+    def test_cell(self):
         '''Test ignoring %cell'''
         SoS_Script('''
 %cell 1
@@ -1454,7 +1454,7 @@ print(_output)
 a = 1
 ''')
 
-    def testOverwriteKeyword(self):
+    def test_overwrite_keyword(self):
         '''Test overwrite sos keyword with user defined one.'''
         if file_target('a.txt').exists():
             file_target('a.txt').unlink()
@@ -1482,7 +1482,7 @@ run:
         # this is ok, see https://github.com/vatlab/SoS/issues/1221
         Base_Executor(wf).run()
 
-    def testComments(self):
+    def test_comments(self):
         '''Test the use of comments in sos script'''
         # extract workflow from ipynb
         wf = extract_workflow('sample_workflow.ipynb')
@@ -1497,7 +1497,7 @@ run:
         self.assertFalse(
             'this comment will not be included in exported workflow' in wf)
 
-    def testHelpMessage(self):
+    def test_help_message(self):
         '''Test help message from ipynb notebook'''
         msg = subprocess.check_output(
             'sos run sample_workflow.ipynb -h', shell=True).decode()
@@ -1517,7 +1517,7 @@ run:
         self.assertFalse(
             'this comment will not be included in exported workflow' in msg)
 
-    def testHelpOnMultiWorkflow(self):
+    def test_help_on_multi_workflow(self):
         '''Test help message of sos file (#985)'''
         with open('test_msg.sos', 'w') as script:
             script.write('''\
@@ -1533,7 +1533,7 @@ run:
         self.assertTrue('workflow_a_10, workflow_b' in msg)
         self.assertTrue('default' in msg)
 
-    def testParameterAbbreviation(self):
+    def test_parameter_abbreviation(self):
         '''Test potential problem caused by parameter abbreviation #1053'''
         if os.path.isfile('0914.txt'):
             os.remove('0914.txt')
@@ -1551,7 +1551,7 @@ _output.touch()
         Base_Executor(wf, args=['--n', '5']).run()
         self.assertTrue(os.path.isfile('0914.txt'))
 
-    def testNamedInput(self):
+    def test_named_input(self):
         '''Test named input'''
         for filename in ('a.txt', 'b.txt'):
             with open(filename, 'w') as out:
@@ -1570,7 +1570,7 @@ with open(_output, 'w') as out:
         Base_Executor(wf).run()
         self.assertTrue(open('c.txt').read(), 'a.txt\nb.txt\n')
 
-    def testNamedOutputInDepends(self):
+    def test_named_output_in_depends(self):
         '''Test named_output in depends statement'''
         script = SoS_Script('''
 [A]
@@ -1583,7 +1583,7 @@ depends: named_output('A')
         wf = script.workflow()
         Base_Executor(wf).run()
 
-    def testOutputFromInDepends(self):
+    def test_output_from_in_depends(self):
         '''Test output_from in depends statement'''
         script = SoS_Script('''
 [A]
@@ -1596,7 +1596,7 @@ depends: output_from('A')
         wf = script.workflow()
         Base_Executor(wf).run()
 
-    def testNamedOutputInOutput(self):
+    def test_named_output_in_output(self):
         '''Test named_output in output statement'''
         script = SoS_Script('''
 [A]
@@ -1609,7 +1609,7 @@ output: named_output('Aa')
         wf = script.workflow()
         self.assertRaises(Exception, Base_Executor(wf).run)
 
-    def testOutputFromInOutput(self):
+    def test_output_from_in_output(self):
         '''Test output_from in output statement'''
         script = SoS_Script('''
 [Aa]
@@ -1622,7 +1622,7 @@ output: output_from('Aa')
         wf = script.workflow()
         self.assertRaises(Exception, Base_Executor(wf).run)
 
-    def testSoSStepInInput(self):
+    def test_so_s_step_in_input(self):
         '''Test sos_step in input statement'''
         script = SoS_Script('''
 [A]
@@ -1635,7 +1635,7 @@ input: sos_step('A')
         wf = script.workflow()
         self.assertRaises(Exception, Base_Executor(wf).run)
 
-    def testSoSVariableInInput(self):
+    def test_so_s_variable_in_input(self):
         '''Test sos_variable in input statement'''
         script = SoS_Script('''
 [A]
@@ -1647,7 +1647,7 @@ input: sos_variable('a')
         wf = script.workflow()
         self.assertRaises(Exception, Base_Executor(wf).run)
 
-    def testSoSVariableInOutput(self):
+    def test_so_s_variable_in_output(self):
         '''Test sos_variable in output statement'''
         script = SoS_Script('''
 [A]
@@ -1659,7 +1659,7 @@ output: sos_variable('a')
         wf = script.workflow()
         self.assertRaises(Exception, Base_Executor(wf).run)
 
-    def testSoSVariableWithKeywordargument(self):
+    def test_so_s_variable_with_keywordargument(self):
         '''Test output_from in output statement'''
         script = SoS_Script('''
 [A]
@@ -1671,7 +1671,7 @@ depends: sos_variable(var='a')
         wf = script.workflow()
         self.assertRaises(Exception, Base_Executor(wf).run)
 
-    def testWideCardStepName(self):
+    def test_wide_card_step_name(self):
         '''test resolving step name with *'''
         script = SoS_Script('''
 [A_1]
@@ -1682,7 +1682,7 @@ assert step_name == 'A_2', f'step_name is {step_name}, A_2 expected'
         wf = script.workflow()
         Base_Executor(wf).run()
 
-    def testOutfromPrevStep(self):
+    def test_outfrom_prev_step(self):
         '''Test output_from(-1) from output_from '''
         script = SoS_Script('''
 [A_1]
@@ -1699,7 +1699,7 @@ depends: sos_step('A_2')
         wf = script.workflow()
         Base_Executor(wf).run()
 
-    def testStepFromNumericStep(self):
+    def test_step_from_numeric_step(self):
         '''Test sos_step(index) #1209'''
         script = SoS_Script('''
 [1]
@@ -1720,7 +1720,7 @@ depends: sos_step(1)
         wf = script.workflow()
         Base_Executor(wf).run()
 
-    def testDependsOnStepWithUnspecifiedInput(self):
+    def test_depends_on_step_with_unspecified_input(self):
         for file in ('A_1.txt', 'A_2.txt', 'A_3.txt', 'A_4.txt'):
             if os.path.isfile(file):
                 os.remove(file)
@@ -1818,7 +1818,7 @@ input: output_from('A_2')
         self.assertFalse(os.path.isfile('A_3.txt'))
         self.assertFalse(os.path.isfile('A_4.txt'))
 
-    def testOutputFromWorkflow(self):
+    def test_output_from_workflow(self):
         '''Test output from workflow'''
         #
         #
@@ -1855,7 +1855,7 @@ with open(_input) as content:
         self.assertTrue(os.path.isfile('A_1.txt'))
         self.assertTrue(os.path.isfile('A_2.txt'))
 
-    def testExecuteGlobalSection(self):
+    def test_execute_global_section(self):
         '''Global section should be executed only once #1219'''
         script = SoS_Script(r'''
 [global]
@@ -1871,7 +1871,7 @@ assert B == [1, 2]
         wf = script.workflow()
         Base_Executor(wf).run()
 
-    def testParaFromNestedWorkflow(self):
+    def test_para_from_nested_workflow(self):
         '''Test passing arguments to nested workflow #1229'''
         script = SoS_Script(r'''
 [A]
@@ -1887,7 +1887,7 @@ sos_run('B+A')
         wf = script.workflow()
         Base_Executor(wf, args=['--param', '2']).run()
 
-    def testIndentedAction(self):
+    def test_indented_action(self):
         '''Test the use of indented action in script format'''
         #
         # not indented
@@ -1987,7 +1987,7 @@ report:
         wf = script.workflow()
         Base_Executor(wf).run()
 
-    def testTaskParamVar(self):
+    def test_task_param_var(self):
         '''Test global parameter passed to task parameters #1281'''
         script = SoS_Script(r'''
 [global]
@@ -2001,7 +2001,7 @@ bash:
         wf = script.workflow()
         Base_Executor(wf, config={'default_queue': 'localhost'}).run()
 
-    def testTaskParamVarToSubstep(self):
+    def test_task_param_var_to_substep(self):
         '''Test global parameter passed to task parameters in substep #1281'''
         script = SoS_Script(r'''
 [global]
@@ -2017,7 +2017,7 @@ bash: expand=True
         wf = script.workflow()
         Base_Executor(wf, config={'default_queue': 'localhost'}).run()
 
-    def testEmptyParameter(self):
+    def test_empty_parameter(self):
         # parameter: without content #1283
         script = SoS_Script(r'''
 parameter:
@@ -2027,7 +2027,7 @@ print(1)
         wf = script.workflow()
         Base_Executor(wf).run()
 
-    def testSequentialSubsteps(self):
+    def test_sequential_substeps(self):
         '''Test sequential execution of substeps'''
         script = SoS_Script(r'''
 [10: shared='sum']
@@ -2040,7 +2040,7 @@ print(f'sum is {sum} at index {_index}')
         Base_Executor(wf).run()
         self.assertEqual(env.sos_dict['sum'], 6)
 
-    def testLimitedConcurrency(self):
+    def test_limited_concurrency(self):
         '''Set concurrent=INT'''
 
         script = SoS_Script(r'''
@@ -2051,7 +2051,7 @@ print(i)
         wf = script.workflow()
         Base_Executor(wf).run()
 
-    def testConcurrentSubstepWithStepImport(self):
+    def test_concurrent_substep_with_step_import(self):
         ''' Test concurrent substep with step leval import statement #1354'''
         execute_workflow('''
 import time

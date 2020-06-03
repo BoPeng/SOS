@@ -35,7 +35,7 @@ class TestActions(unittest.TestCase):
 
     @unittest.skipIf(not shutil.which('python2.7'),
                      'Skip test because of no python2.7 installation')
-    def testPython2(self):
+    def test_python2(self):
 
         script = SoS_Script(r'''
 [0]

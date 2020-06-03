@@ -48,7 +48,7 @@ class TestRemote(unittest.TestCase):
             file_target(f).unlink()
 
     @unittest.skipIf(not has_docker, "Docker container not usable")
-    def testRemoteExecute(self):
+    def test_remote_execute(self):
         if os.path.isfile('result_remote.txt'):
             os.remove('result_remote.txt')
         if os.path.isfile('local.txt'):
@@ -127,7 +127,7 @@ run:
 #             self.assertEqual('1\n2\n', content, 'Got {}'.format(content))
 
     @unittest.skipIf(not has_docker, "Docker container not usable")
-    def testFromHostOption(self):
+    def test_from_host_option(self):
         '''Test from_remote option'''
         if os.path.isfile('llp'):
             os.remove('llp')
@@ -149,7 +149,7 @@ with open('llp', 'w') as llp:
         self.assertTrue(os.path.isfile('llp'))
 
     @unittest.skipIf(not has_docker, "Docker container not usable")
-    def testFromHostOptionDict(self):
+    def test_from_host_option_dict(self):
         # dict form
         if os.path.isfile('llp'):
             os.remove('llp')
@@ -170,7 +170,7 @@ with open('llp', 'w') as llp:
         self.assertTrue(os.path.isfile('llp'))
 
     @unittest.skipIf(not has_docker, "Docker container not usable")
-    def testLocalFromHostOption(self):
+    def test_local_from_host_option(self):
         '''Test from_remote option'''
         if os.path.isfile('llp'):
             os.remove('llp')
@@ -212,7 +212,7 @@ sh:
 #         self.assertTrue(os.path.isfile('llp'))
 #         os.remove('llp')
 
-    def testWorkerProcs(self):
+    def test_worker_procs(self):
         # test -j option
         script = SoS_Script('''
 [1]
@@ -229,7 +229,7 @@ bash: expand=True
                 'worker_proces': ['1', 'localhost:2']
             }).run()
 
-    def testWorkerProcsWithTask(self):
+    def test_worker_procs_with_task(self):
         # test -j option
         script = SoS_Script('''
 [1]

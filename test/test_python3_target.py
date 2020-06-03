@@ -22,7 +22,7 @@ class TestPython3Target(unittest.TestCase):
             if file_target(f).exists():
                 file_target(f).unlink()
 
-    def testPy_Module(self):
+    def test_py_module(self):
         '''Test target Py_Module'''
         if file_target('report.md').exists():
             file_target('report.md').unlink()
@@ -49,7 +49,7 @@ Mars     3390   641.85
 -----  ------  -------------
 '''.strip())
 
-    def testPy_ModuleWithVersion(self):
+    def test_py_module_with_version(self):
         '''Test target Py_Module'''
         script = SoS_Script(r'''
 [10]
@@ -79,7 +79,7 @@ depends: Py_Module('tabulate<2.0')
         wf = script.workflow()
         Base_Executor(wf).run()
 
-    def testUpgradePyModule(self):
+    def test_upgrade_py_module(self):
         '''Test upgrade py module #1246'''
         # first install tabulate == 0.7.5
         script = SoS_Script(r'''

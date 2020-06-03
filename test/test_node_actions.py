@@ -23,7 +23,7 @@ class TestActions(unittest.TestCase):
             file_target(f).unlink()
 
     @unittest.skipIf(not shutil.which('node'), 'node not installed')
-    def testNode(self):
+    def test_node(self):
         '''Test action node'''
         script = SoS_Script(r'''
 [0]

@@ -33,7 +33,7 @@ class TestActions(unittest.TestCase):
         #
         self.temp_files.extend(files)
 
-    def testBash(self):
+    def test_bash(self):
         '''Test action bash'''
         script = SoS_Script(r'''
 [0]
@@ -50,7 +50,7 @@ echo 'Echo
         wf = script.workflow()
         self.assertRaises(Exception, Base_Executor(wf).run)
 
-    def testSh(self):
+    def test_sh(self):
         '''Test action run'''
         script = SoS_Script(r'''
 [0]
@@ -67,7 +67,7 @@ echo 'Echo
         wf = script.workflow()
         self.assertRaises(Exception, Base_Executor(wf).run)
 
-    def testCsh(self):
+    def test_csh(self):
         '''Test action csh'''
         if not shutil.which('csh'):
             return
@@ -81,7 +81,7 @@ csh:
         wf = script.workflow()
         Base_Executor(wf).run()
 
-    def testTcsh(self):
+    def test_tcsh(self):
         '''Test action tcsh'''
         if not shutil.which('tcsh'):
             return
@@ -95,7 +95,7 @@ tcsh:
         wf = script.workflow()
         Base_Executor(wf).run()
 
-    def testZsh(self):
+    def test_zsh(self):
         '''Test action zsh'''
         if not shutil.which('zsh'):
             return
@@ -107,7 +107,7 @@ echo "Hello World!", $SHELL
         wf = script.workflow()
         Base_Executor(wf).run()
 
-    def testArgs(self):
+    def test_args(self):
         '''Test args option of scripts'''
         if os.path.isfile('a.txt'):
             file_target('a.txt').unlink()

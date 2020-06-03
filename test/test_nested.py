@@ -36,7 +36,7 @@ class TestNested(unittest.TestCase):
         #
         self.temp_files.extend(files)
 
-    def testProgressBar(self):
+    def test_progress_bar(self):
         # progress bar with nested workflow
         script = SoS_Script('''
 import time
@@ -56,7 +56,7 @@ sos_run('sub')
         wf = script.workflow('a')
         Base_Executor(wf).run()
 
-    def testNestedWorkflow(self):
+    def test_nested_workflow(self):
         '''Test the creation and execution of combined workfow'''
         self.touch(['a.txt', 'b.txt', 'b.begin'])
         script = SoS_Script('''
@@ -119,7 +119,7 @@ sos_run('a+b', shared=['executed', 'inputs'])
                 ['c', 'a_1', 'a_2', 'a_3', 'a_4', 'b_1', 'b_2', 'b_3', 'b_4']))
         env.sos_dict.pop('executed', None)
 
-    def testLoopedNestedWorkflow(self):
+    def test_looped_nested_workflow(self):
         # step will be looped
         self.touch(['a.txt', 'b.txt'])
         script = SoS_Script('''
@@ -158,7 +158,7 @@ sos_run('a', shared=['executed', 'inputs'])
                 file_target(file).unlink()
         #
 
-    def testSingleLoopedNestedWorkflow(self):
+    def test_single_looped_nested_workflow(self):
         self.touch(['a.txt', 'b.txt'])
         env.sos_dict.pop('executed', None)
         # allow specifying a single step
@@ -205,7 +205,7 @@ sos_run('a:2', shared='executed')
         #
         env.sos_dict.pop('executed', None)
 
-    def testRecursiveNestedWorkflow(self):
+    def test_recursive_nested_workflow(self):
         # recursive subworkflow not allowed
         self.touch(['a.txt', 'b.txt'])
         script = SoS_Script('''
@@ -258,7 +258,7 @@ sos_run('a+b', shared='executed')
         #
         env.sos_dict.pop('executed', None)
 
-    def testSubworkflowWithOptions(self):
+    def test_subworkflow_with_options(self):
         # nested subworkflow with step option and others
         self.touch(['a.txt', 'b.txt'])
         script = SoS_Script('''
@@ -298,7 +298,7 @@ input: 'a.txt', 'b.txt', group_by='single'
         # clean up
         file_target('a.done').unlink()
 
-    def testDynamicNestedWorkflow(self):
+    def test_dynamic_nested_workflow(self):
         '''Test nested workflow controlled by command line option'''
         script = SoS_Script('''
 if 'executed' not in locals():
@@ -332,7 +332,7 @@ sos_run(wf, shared='executed')
         self.assertEqual(env.sos_dict['executed'],
                          ['default', 'a_1', 'a_2', 'a_3'])
 
-    def testSoSRun(self):
+    def test_so_s_run(self):
         '''Test action sos_run with keyword parameters'''
         for f in ['0.txt', '1.txt']:
             if file_target(f).exists():
@@ -391,7 +391,7 @@ for k in range(2):
             self.assertTrue(file_target(f).target_exists())
             file_target(f).unlink()
 
-    def testDAGofDynamicNestedWorkflow(self):
+    def test_da_gof_dynamic_nested_workflow(self):
         #
         # Because we are not sure which workflows would be executed
         # until run time, the DAG should not contain nested workflow
@@ -439,7 +439,7 @@ for i in range(3):
             self.assertTrue(file_target(f).target_exists())
             file_target(f).unlink()
 
-    def testOutcomeOrientedNestedWorkflow(self):
+    def test_outcome_oriented_nested_workflow(self):
         '''test nested workflow triggered by targets'''
         if os.path.isfile('test_15.txt'):
             os.remove('test_15.txt')
@@ -452,7 +452,7 @@ sos_run(targets='test_15.txt')
         ''')
         self.assertTrue(os.path.isfile('test_15.txt'))
 
-    def testPassingVarsToNestedWorkflow(self):
+    def test_passing_vars_to_nested_workflow(self):
         '''Test if variables can be passed to nested workflows'''
         script = SoS_Script(r"""
 import time
@@ -476,7 +476,7 @@ sos_run('nested', nested=nested, seed=seed)
         wf = script.workflow()
         Base_Executor(wf).run()
 
-    def testUserDefinedFunc(self):
+    def test_user_defined_func(self):
         '''Test the use of user-defined functions in SoS script'''
         script = SoS_Script(r"""
 
@@ -512,7 +512,7 @@ myfunc()
         Base_Executor(wf).run(mode='dryrun')
         self.assertEqual(env.sos_dict['test'], ['a45'])
 
-    def testConfigFileOfNestedWorkflow(self):
+    def test_config_file_of_nested_workflow(self):
         '''Test passing of configurationg to nested workflow'''
         script = SoS_Script('''
 [test_1]
@@ -527,7 +527,7 @@ sos_run('test:1', key = '1')
         wf = script.workflow()
         Base_Executor(wf, config={'config_file': 'test.conf'}).run()
 
-    def testErrorFromSubworkflow(self):
+    def test_error_from_subworkflow(self):
         '''Test if error from subworkflow is passed to master (#396)'''
         script = SoS_Script('''
 [test_1]
@@ -540,7 +540,7 @@ sos_run('test')
         wf = script.workflow()
         self.assertRaises(Exception, Base_Executor(wf).run)
 
-    def testFunDef(self):
+    def test_fun_def(self):
         '''Test defintion of function that can be used by other steps'''
         self.touch(['aa.txt', 'ab.txt'])
         # in nested workflow?
@@ -560,7 +560,7 @@ sos_run('mse')
         # Names defined in subworkflow is not returned to the master dict
         self.assertTrue('test' not in env.sos_dict)
 
-    def testSearchPath(self):
+    def test_search_path(self):
         '''Test if any action should exit in five seconds in dryrun mode'''
         sos_config_file = os.path.join(
             os.path.expanduser('~'), '.sos', 'config.yml')
@@ -595,7 +595,7 @@ print('hay, I am crazy')
         os.remove(sos_config_file)
         shutil.copy('test.yml', sos_config_file)
 
-    def testNestedWorkdir(self):
+    def test_nested_workdir(self):
         '''Test nested runtime option for work directory'''
         if os.path.isdir('tmp'):
             shutil.rmtree('tmp')
@@ -614,7 +614,7 @@ sos_run('step', workdir='tmp')
         os.path.isfile('tmp/tmp/a.txt')
         shutil.rmtree('tmp')
 
-    def testFailureOfNestedWorkflow(self):
+    def test_failure_of_nested_workflow(self):
         '''Test failure of nested workflow #838'''
         if os.path.isfile('a.txt'):
             os.remove('a.txt')
@@ -629,7 +629,7 @@ sos_run('something')
         # this should be ok.
         self.assertRaises(Exception, Base_Executor(wf).run)
 
-    def testNestedFromAnotherFile(self):
+    def test_nested_from_another_file(self):
         '''Test nested runtime option for work directory'''
         if os.path.isdir('a.txt'):
             os.remove('a.txt')
@@ -652,7 +652,7 @@ sos_run('whatever', source='another.sos')
             'a.txt should have been created by nested workflow from another file'
         )
 
-    def testConcurrentSubWorkflow(self):
+    def test_concurrent_sub_workflow(self):
         '''Test concurrent subworkflow sos_run '''
         script = SoS_Script('''
 [A]
@@ -671,7 +671,7 @@ sos_run('A', idx=i)
         Base_Executor(wf, config={'worker_procs': ['8']}).run()
         self.assertTrue(time.time() - st < 30)
 
-    def testSoSMultiWorkflow(self):
+    def test_so_s_multi_workflow(self):
         '''Test multiple workflows in sos_run '''
         script = SoS_Script('''
 [B]
@@ -694,7 +694,7 @@ sos_run(['A', 'B'], idx=i)
         Base_Executor(wf, config={'worker_procs': ['8']}).run()
         self.assertTrue(time.time() - st < 20)
 
-    def testPassOfArgs(self):
+    def test_pass_of_args(self):
         '''Test passing of arguments through sos_run #1164'''
         script = SoS_Script('''
 parameter: b=2
@@ -732,7 +732,7 @@ sos_run('A', c=2)
         wf = script.workflow()
         Base_Executor(wf).run()
 
-    def testNestedDynamicDepends(self):
+    def test_nested_dynamic_depends(self):
         '''Test the execution of nested workflow with dynamic depends'''
         script = SoS_Script('''
 [A_1]
@@ -756,7 +756,7 @@ sos_run('A', num=0)
         wf = script.workflow()
         Base_Executor(wf).run()
 
-    def testNesteWithBothWorkflowAndTargets(self):
+    def test_neste_with_both_workflow_and_targets(self):
         '''Test nested workflow with both workflow and targets'''
         for file in ('A_out.txt', 'B_out.txt'):
             if os.path.isfile(file):

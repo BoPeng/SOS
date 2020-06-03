@@ -32,7 +32,7 @@ class TestActions(unittest.TestCase):
         #
         self.temp_files.extend(files)
 
-    def testPython(self):
+    def test_python(self):
         '''Test python command. This might fail if python3 is the
         default interpreter'''
         script = SoS_Script(r'''
@@ -44,7 +44,7 @@ print(a)
         wf = script.workflow()
         Base_Executor(wf).run()
 
-    def testPython3(self):
+    def test_python3(self):
         script = SoS_Script(r'''
 [0]
 python3: expand='${ }'

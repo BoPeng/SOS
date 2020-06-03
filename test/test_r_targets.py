@@ -25,7 +25,7 @@ class TestTarget(unittest.TestCase):
             file_target(f).unlink()
 
     @unittest.skipIf(not shutil.which('Rscript'), 'Octave not installed')
-    def testRLibrary(self):
+    def test_r_library(self):
         '''Test target R_Library'''
         script = SoS_Script('''
 [default]
@@ -37,7 +37,7 @@ R:
         Base_Executor(wf).run()
 
     @unittest.skipIf(not shutil.which('Rscript'), 'R not installed')
-    def testDependsRLibrary(self):
+    def test_depends_r_library(self):
         '''Testing depending on R_library'''
         # first remove xtable package
         subprocess.call('R CMD REMOVE xtable', shell=True)
@@ -54,7 +54,7 @@ R:
         Base_Executor(wf).run()
 
     @unittest.skipIf(not shutil.which('Rscript'), 'R not installed')
-    def testReexecution(self):
+    def test_reexecution(self):
         '''Test re-execution of steps with R_library'''
         script = SoS_Script('''
 [1]

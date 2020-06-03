@@ -75,7 +75,7 @@ class TestTask(unittest.TestCase):
         #
         self.temp_files.extend(files)
 
-    def testTaskFile(self):
+    def test_task_file(self):
         '''Test task file handling'''
         for ext in ('.pulse', '.out', '.err', '.task', '.sh'):
             filename = os.path.join(
@@ -146,7 +146,7 @@ class TestTask(unittest.TestCase):
         a.add_result({'ret_code': 5})
         self.assertEqual(a.result['ret_code'], 5)
 
-    def testWorkdir(self):
+    def test_workdir(self):
         '''Test workdir option for runtime environment'''
         import tempfile
         tdir = tempfile.mkdtemp()
@@ -193,7 +193,7 @@ with open(os.path.join({1!r}, 'result.txt'), 'w') as res:
 #             })
 #         self.assertGreater(time.time() - start, 11)
 
-    def testConcurrency(self):
+    def test_concurrency(self):
         '''Test concurrency option for runtime environment'''
         execute_workflow(
             r"""
@@ -214,7 +214,7 @@ print('I am {}, done'.format(_index))
                 'sig_mode': 'force'
             })
 
-    def testPrependPath(self):
+    def test_prepend_path(self):
         '''Test prepend path'''
         import stat
         if not os.path.isdir('temp'):
@@ -265,7 +265,7 @@ run:
 """,
             options={'default_queue': 'localhost'})
 
-    def testNoTask(self):
+    def test_no_task(self):
         env.config['sig_mode'] = 'force'
         script = SoS_Script(r'''
 
@@ -290,7 +290,7 @@ run:
         # this will always work and not through task
         Base_Executor(wf, config={'default_queue': 'localhost'}).run()
 
-    def testPassingVarToTask(self):
+    def test_passing_var_to_task(self):
         '''Test passing used variable to tasks'''
         for i in range(10, 13):
             if file_target(f'myfile_{i}.txt').exists():
@@ -322,7 +322,7 @@ run: expand=True
             if file_target(f'myfile_{t}.txt').exists():
                 file_target(f'myfile_{t}.txt').unlink()
 
-    def testMaxJobs(self):
+    def test_max_jobs(self):
         '''Test default max number of jobs'''
         script = SoS_Script(r'''
 
@@ -337,7 +337,7 @@ run: expand=True
         wf = script.workflow()
         Base_Executor(wf, config={'default_queue': 'localhost'}).run()
 
-    def testKillAndPurge(self):
+    def test_kill_and_purge(self):
         '''Test no wait'''
         subprocess.call(['sos', 'purge'])
         with open('test_purge.sos', 'w') as script:
@@ -368,7 +368,7 @@ run:
             ['sos', 'status', '-v', '3']).decode())
         # purge by all is not tested because it is dangerous
 
-    def testConcurrentTask(self):
+    def test_concurrent_task(self):
         '''Test submitting tasks from concurrent substeps'''
         for f in [f'con_{x}.txt' for x in range(5)]:
             if file_target(f).exists():
@@ -391,7 +391,7 @@ run: expand=True
         for f in [f'con_{x}.txt' for x in range(5)]:
             self.assertTrue(file_target(f).exists())
 
-    def testSharedOption(self):
+    def test_shared_option(self):
         '''Test shared option of task'''
         for f in ('a.txt', 'a100.txt'):
             if file_target(f).exists():
@@ -457,7 +457,7 @@ rng = random.randint(1, 1000)
         #Base_Executor(wf).run()
         #self.assertEqual(var, env.sos_dict['rng'])
 
-    def testTrunkSizeOption(self):
+    def test_trunk_size_option(self):
         '''Test option trunk_size'''
         with open('test_trunksize.sos', 'w') as tt:
             tt.write('''
@@ -520,7 +520,7 @@ run: expand=True
         for i in range(10):
             self.assertTrue(os.path.isfile(f'{i}.txt'))
 
-    def testTrunkWorkersOption(self):
+    def test_trunk_workers_option(self):
         '''Test option trunk_workers'''
         with open('test_trunkworker.sos', 'w') as tt:
             tt.write('''
@@ -550,7 +550,7 @@ run: expand=True
         for i in range(10):
             self.assertTrue(os.path.isfile('{}.txt'.format(i)))
 
-    def testTaskTags(self):
+    def test_task_tags(self):
         '''Test option tags of tasks'''
         import random
         tag = "tag{}".format(random.randint(1, 100000))
@@ -613,7 +613,7 @@ sh: expand=True
         self.assertEqual(len(ret.splitlines()), 2, "Obtained {}".format(ret))
 
     @unittest.skipIf(not has_docker, "Docker container not usable")
-    def testMaxMem(self):
+    def test_max_mem(self):
         '''Test server restriction max_mem'''
         script = SoS_Script('''
 [10]
@@ -631,7 +631,7 @@ print('a')
                     'sig_mode': 'force',
                 }).run)
 
-    def testLocalMaxMem(self):
+    def test_local_max_mem(self):
         '''Test server restriction max_mem'''
         script = SoS_Script('''
 [10]
@@ -649,7 +649,7 @@ print('a')
                     'sig_mode': 'force',
                 }).run)
 
-    def testRuntimeMaxWalltime(self):
+    def test_runtime_max_walltime(self):
         '''Test server max_walltime option'''
         script = SoS_Script('''
 [10]
@@ -668,7 +668,7 @@ time.sleep(25)
                     'sig_mode': 'force',
                 }).run)
 
-    def testLocalRuntimeMaxWalltime(self):
+    def test_local_runtime_max_walltime(self):
         '''Test server max_walltime option'''
         script = SoS_Script('''
 [10]
@@ -688,7 +688,7 @@ time.sleep(15)
                 }).run)
 
     @unittest.skipIf(not has_docker, "Docker container not usable")
-    def testMaxCores(self):
+    def test_max_cores(self):
         '''Test server restriction max_cores'''
         script = SoS_Script('''
 [10]
@@ -707,7 +707,7 @@ print('a')
                 }).run)
 
     @unittest.skipIf(not has_docker, "Docker container not usable")
-    def testOverrideMaxCores(self):
+    def test_override_max_cores(self):
         '''Test use queue_args to override server restriction max_cores'''
         script = SoS_Script('''
 [10]
@@ -724,7 +724,7 @@ print('a')
                 'queue_args': {'cores': 1}
             }).run()
 
-    def testLocalMaxCores(self):
+    def test_local_max_cores(self):
         '''Test server restriction max_cores'''
         script = SoS_Script('''
 [10]
@@ -742,7 +742,7 @@ print('a')
                     'sig_mode': 'force',
                 }).run)
 
-    def testListHosts(self):
+    def test_list_hosts(self):
         '''test list hosts using sos status -q'''
         for v in ['0', '1', '3', '4']:
             output = subprocess.check_output(
@@ -753,7 +753,7 @@ print('a')
                 f'local_limited not in \n{output}\n for verbosity {v}')
 
     @unittest.skipIf(not has_docker, "Docker container not usable")
-    def testMaxWalltime(self):
+    def test_max_walltime(self):
         '''Test server restriction max_walltime'''
         script = SoS_Script('''
 [10]
@@ -771,7 +771,7 @@ print('a')
                     'sig_mode': 'force',
                 }).run)
 
-    def testPurgeAllWithOption(self):
+    def test_purge_all_with_option(self):
         '''Test sos purge all with options such as -s completed'''
         with cd_new('temp_c'):
             with open('test.sos', 'w') as tst:
@@ -808,7 +808,7 @@ touch {_output}
         ]
         self.assertTrue(tasks[1] not in taskstatus)
 
-    def testResubmitTaskWithDifferentWalltime(self):
+    def test_resubmit_task_with_different_walltime(self):
         '''Test resubmission of tasks with different walltime #1019'''
         with cd_new('temp_walltime'):
             with open('test.sos', 'w') as tst:
@@ -836,7 +836,7 @@ echo 0.1
                 f'sos status {tasks[0]} -v4', shell=True)
             self.assertTrue('00:02:00' in out.decode())
 
-    def testTaskSignature(self):
+    def test_task_signature(self):
         '''Test re-execution of tasks'''
         with cd_new('temp_signature'):
             with open('test.sos', 'w') as tst:
@@ -855,7 +855,7 @@ sleep 2
             subprocess.call('sos run test -q localhost', shell=True)
             self.assertLess(tf.tags_created_start_and_duration()[3], 1)
 
-    def testWrongHost(self):
+    def test_wrong_host(self):
         script = SoS_Script('''
 [10]
 task: walltime='1:00:00', queue='undefined'
@@ -868,7 +868,7 @@ print('a')
                 'default_queue': 'localhost'
             }).run)
 
-    def testOutputInTask(self):
+    def test_output_in_task(self):
         '''Test passing _output to task #1136'''
         script = SoS_Script('''
 chunks  = [1,2]
@@ -889,7 +889,7 @@ python3: expand="${ }"
         wf = script.workflow()
         Base_Executor(wf, config={'default_queue': 'localhost'}).run()
 
-    def testRepeatedTasks(self):
+    def test_repeated_tasks(self):
         '''Test statement before task #1142 '''
         script = SoS_Script('''
 [1]
@@ -908,7 +908,7 @@ print(f'this is task {i}')
                     'default_queue': 'localhost'
                 }).run()
 
-    def testPassingParametersToTask(self):
+    def test_passing_parameters_to_task(self):
         '''Test passing of parameters in global section to tasks #1155'''
         script = SoS_Script('''\
 [global]
@@ -927,7 +927,7 @@ a()
                 'default_queue': 'localhost'
             }).run()
 
-    def testTrunkSizeWithStopIf(self):
+    def test_trunk_size_with_stop_if(self):
         '''Test a case when some tasks are not submitted due to holes in slots #1159'''
         for i in range(5):
             f = f'{i+1}.txt'
@@ -959,7 +959,7 @@ _output.touch()
                 'default_queue': 'localhost'
             }).run()
 
-    def testOutputFromMasterTask(self):
+    def test_output_from_master_task(self):
         '''Test splitting the output from master task #1203'''
         script = SoS_Script('''\
 l=[x for x in range(1,13)]
@@ -978,7 +978,7 @@ assert _input == f'{_index+1}.out'
         Base_Executor(wf, config={'default_queue': 'localhost'}).run()
 
     @unittest.skipIf(not has_docker, "Docker container not usable")
-    def testSyncInputOutputAndRerun(self):
+    def test_sync_input_output_and_rerun(self):
         '''Test sync input and output with remote host'''
         for i in range(4):
             if os.path.isfile(f'test_{i}.txt'):
@@ -1042,7 +1042,7 @@ with open(_input, 'r') as inf, open(_output, 'w') as outf:
                 self.assertEqual(outf.read(), f'test_{i}_{val}.bak')
 
     @unittest.skipIf(not has_docker, "Docker container not usable")
-    def testSyncMasterTask(self):
+    def test_sync_master_task(self):
         '''Test sync input and output with remote host with trunksize'''
         for i in range(4):
             if os.path.isfile(f'test_{i}.txt'):
@@ -1088,7 +1088,7 @@ with open(_input, 'r') as inf, open(_output, 'w') as outf:
                 self.assertEqual(outf.read(), f'test_{i}_{val}.bak')
 
     @unittest.skipIf(not has_docker, "Docker container not usable")
-    def testRemoteInputTarget(self):
+    def test_remote_input_target(self):
         '''Test the use of remote target'''
         if os.path.isfile(f'vars.sh'):
             os.remove(f'vars.sh')
@@ -1117,7 +1117,7 @@ with open(_input, 'r') as inf, open(_output, 'w') as outf:
         self.assertTrue(os.path.isfile('vars1.sh'))
 
     @unittest.skipIf(not has_docker, "Docker container not usable")
-    def testRemoteOutputTarget(self):
+    def test_remote_output_target(self):
         '''Test the use of remote target'''
         if os.path.isfile(f'vars.sh'):
             os.remove(f'vars.sh')
@@ -1172,7 +1172,7 @@ with open(_input, 'r') as inf, open(_output, 'w') as outf:
         self.assertFalse(os.path.isfile('init-d-script'))
 
     @unittest.skipIf(not has_docker, "Docker container not usable")
-    def testDelayedInterpolation(self):
+    def test_delayed_interpolation(self):
         '''Test delayed interpolation with expression involving remote objects'''
         # purge all previous tasks
         if file_target('test.py').exists():

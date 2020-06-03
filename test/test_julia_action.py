@@ -24,7 +24,7 @@ class TestActions(unittest.TestCase):
             file_target(f).unlink()
 
     @unittest.skipIf(not shutil.which('julia'), "julia not available")
-    def testJulia(self):
+    def test_julia(self):
         '''Test action Julia'''
         if os.path.isfile('julia_example.txt'):
             os.remove('julia_example.txt')

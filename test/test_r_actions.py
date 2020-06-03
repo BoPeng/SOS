@@ -26,7 +26,7 @@ class TestActions(unittest.TestCase):
 
     @unittest.skipIf(not shutil.which('Rscript') or not shutil.which('pandoc'),
                      'R or pandoc not installed')
-    def testRmarkdown(self):
+    def test_rmarkdown(self):
         '''Test action Rmarkdown'''
         if file_target('myreport.html').exists():
             file_target('myreport.html').unlink()
@@ -52,7 +52,7 @@ Rmarkdown(output=_output[0])
 
     @unittest.skipIf(not shutil.which('Rscript') or not shutil.which('pandoc'),
                      'R or pandoc not installed')
-    def testRmarkdownWithInput(self):
+    def test_rmarkdown_with_input(self):
         # Rmarkdown with specified input.
         script = SoS_Script(r'''
 [10]
@@ -94,7 +94,7 @@ Rmarkdown(input='a.md', output=_output[0])
 
     @unittest.skipIf(not shutil.which('Rscript') or not shutil.which('pandoc'),
                      'R or pandoc not installed')
-    def testRmarkdownWithActionOutput(self):
+    def test_rmarkdown_with_action_output(self):
         script = SoS_Script(r'''
 [10]
 report: output='default_10.md'
@@ -116,7 +116,7 @@ Rmarkdown(input=['default_10.md', 'default_20.md'], output='output.html')
 
     @unittest.skipIf(not shutil.which('Rscript') or not shutil.which('pandoc'),
                      'R or pandoc not installed')
-    def testRmarkdownToStdout(self):
+    def test_rmarkdown_to_stdout(self):
         script = SoS_Script(r'''
 # generate report
 Rmarkdown:

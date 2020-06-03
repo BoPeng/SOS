@@ -25,7 +25,7 @@ class TestActions(unittest.TestCase):
                 file_target(f).unlink()
 
     @unittest.skipIf(not shutil.which('ruby'), 'ruby not installed')
-    def testRuby(self):
+    def test_ruby(self):
         '''Test action ruby'''
         if file_target('sample.txt').exists():
             file_target('sample.txt').unlink()

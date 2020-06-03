@@ -434,8 +434,8 @@ def get_step_output(section, default_output, analysis_type):
     # if the step is referred to by named_output, sos_step etc, we do not
     # care about their output. In terms of bug #1379, perhaps the step would
     # be added to the DAG multiple times, it will be run only once.
-    if default_output is None or all(
-            isinstance(x, sos_step) for x in default_output):
+    if analysis_type == 'backward' and (default_output is None or all(
+            isinstance(x, sos_step) for x in default_output)):
         return step_output
 
     # # if the output is of type named_output, we do not need to care about

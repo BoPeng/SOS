@@ -2571,35 +2571,34 @@ def test_named_output():
     for wf in ('B', 'C', 'D'):
         execute_workflow(
             '''
-[A]
-input: for_each=dict(i=range(4))
-output: aa=f'a_{i}.txt', bb=f'b_{i}.txt'
-_output.touch()
+            [A]
+            input: for_each=dict(i=range(4))
+            output: aa=f'a_{i}.txt', bb=f'b_{i}.txt'
+            _output.touch()
 
-[B]
-input: named_output('aa')
-assert(len(step_input.groups) == 4)
-assert(len(step_input) == 4)
-assert(step_input.labels == ['aa']*4)
-assert(step_input.groups[0] == 'a_0.txt')
-assert(step_input.groups[3] == 'a_3.txt')
+            [B]
+            input: named_output('aa')
+            assert(len(step_input.groups) == 4)
+            assert(len(step_input) == 4)
+            assert(step_input.labels == ['aa']*4)
+            assert(step_input.groups[0] == 'a_0.txt')
+            assert(step_input.groups[3] == 'a_3.txt')
 
-[C]
-input: K=named_output('bb')
-assert(len(step_input.groups) == 4)
-assert(len(step_input) == 4)
-assert(step_input.labels == ['K']*4)
-assert(step_input.groups[0] == 'b_0.txt')
-assert(step_input.groups[3] == 'b_3.txt')
+            [C]
+            input: K=named_output('bb')
+            assert(len(step_input.groups) == 4)
+            assert(len(step_input) == 4)
+            assert(step_input.labels == ['K']*4)
+            assert(step_input.groups[0] == 'b_0.txt')
+            assert(step_input.groups[3] == 'b_3.txt')
 
-[D]
-input: K=named_output('bb', group_by=2)
-assert(len(step_input.groups) == 2)
-assert(len(step_input) == 4)
-assert(step_input.labels == ['K']*4)
-assert(step_input.groups[1] == ['b_2.txt', 'b_3.txt'])
-
-    ''',
+            [D]
+            input: K=named_output('bb', group_by=2)
+            assert(len(step_input.groups) == 2)
+            assert(len(step_input) == 4)
+            assert(step_input.labels == ['K']*4)
+            assert(step_input.groups[1] == ['b_2.txt', 'b_3.txt'])
+            ''',
             workflow=wf)
 
 
@@ -2630,25 +2629,25 @@ def test_error_handling_of_missing_input(clear_now_and_after):
     st = time.time()
 
     script = """
-import time
+        import time
 
-[10]
-time.sleep(8)
+        [10]
+        time.sleep(8)
 
-[11]
-output: '11.txt'
-_output.touch()
+        [11]
+        output: '11.txt'
+        _output.touch()
 
-[20]
-input: None
-time.sleep(2)
+        [20]
+        input: None
+        time.sleep(2)
 
-[21]
-input: 'no_existent.txt'
+        [21]
+        input: 'no_existent.txt'
 
-[22]
-output: '22.txt'
-_output.touch()
+        [22]
+        output: '22.txt'
+        _output.touch()
         """
     with pytest.raises(Exception):
         execute_workflow(script)
@@ -2691,22 +2690,22 @@ def test_1379(clear_now_and_after):
     clear_now_and_after('a.txt', 'b.txt')
 
     execute_workflow('''
-    [multi: provides=['a.txt', 'b.txt']]
+        [multi: provides=['a.txt', 'b.txt']]
 
-    out = 'a.txt', 'b.txt'
-    output: out
+        out = 'a.txt', 'b.txt'
+        output: out
 
-    import time
-    time.sleep(2)
-    _output.touch()
+        import time
+        time.sleep(2)
+        _output.touch()
 
 
-    [step_1]
-    input: 'a.txt'
+        [step_1]
+        input: 'a.txt'
 
-    [step_2]
-    input: 'b.txt'
-    ''')
+        [step_2]
+        input: 'b.txt'
+        ''')
 
 
 def test_remove_empty_groups_default():
@@ -2797,31 +2796,31 @@ def test_multi_depends(clear_now_and_after, temp_factory):
 
     execute_workflow(
         '''
-import time
+        import time
 
-[refseq: provides='hg19.fa']
-time.sleep(1)
-_output.touch()
+        [refseq: provides='hg19.fa']
+        time.sleep(1)
+        _output.touch()
 
-[dbsnp: provides='dbsnp.vcf']
-_output.touch()
+        [dbsnp: provides='dbsnp.vcf']
+        _output.touch()
 
-[align_10]
-depends: 'hg19.fa'
-input: 'f1.fastq', 'f2.fastq', group_by=1, concurrent=True
-output: _input.with_suffix('.bam')
-_output.touch()
+        [align_10]
+        depends: 'hg19.fa'
+        input: 'f1.fastq', 'f2.fastq', group_by=1, concurrent=True
+        output: _input.with_suffix('.bam')
+        _output.touch()
 
-[align_20]
-input: group_by=1, concurrent=True
-output: _input.with_suffix('.bam.idx')
-_output.touch()
+        [align_20]
+        input: group_by=1, concurrent=True
+        output: _input.with_suffix('.bam.idx')
+        _output.touch()
 
-[call_10]
-depends: 'dbsnp.vcf', 'hg19.fa'
+        [call_10]
+        depends: 'dbsnp.vcf', 'hg19.fa'
 
-[call_20]
-''',
+        [call_20]
+        ''',
         workflow='align+call')
 
     for file in ('dbsnp.vcf', 'hg19.fa', 'f1.bam', 'f2.bam', 'f1.bam.idx',

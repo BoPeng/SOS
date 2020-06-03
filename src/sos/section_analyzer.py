@@ -506,6 +506,8 @@ def get_step_output(section, default_output, analysis_type):
                         for x, y in kwargs.items()
                         if x not in SOS_TARGETS_OPTIONS
                     })
+            if kwargs:
+                step_output.extend(named_output(x) for x in kwargs.keys())
         except SyntaxError:
             raise
         except Exception as e:

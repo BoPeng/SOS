@@ -1384,7 +1384,6 @@ class sos_targets(BaseTarget, Sequence, os.PathLike):
 
     def __getitem__(self, i):
         if isinstance(i, str):
-            env.logger.error(f'get {i}')
             ret = sos_targets()
             ret._undetermined = self._undetermined
             ret._targets = [

@@ -183,7 +183,8 @@ WORKDIR /home
         wf = script.workflow()
         Base_Executor(wf).run()
 
-    @unittest.skipIf(not has_docker or sys.platform != 'win32',
+    @unittest.skipIf(not has_docker or sys.platform != 'win32' or
+                     'APPVEYOR' in os.environ,
                      'Skip test because docker is not installed.')
     def test_docker_build_windows_image(self):
         '''Test action docker build'''

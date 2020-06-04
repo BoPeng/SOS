@@ -5,7 +5,6 @@ image: Visual Studio 2017
 #init:
 #  - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
-
 #branches:
 #    only:
 #        - master
@@ -21,31 +20,31 @@ clone_depth: 50
 shallow_clone: false
 
 environment:
-    matrix:
-        - PYTHON: "C:\\Miniconda36-x64"
-          PYTHON_VERSION: 3.6
+  matrix:
+    - PYTHON: "C:\\Miniconda36-x64"
+      PYTHON_VERSION: 3.6
 
 install:
-    - set PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%
-    - conda config --set always_yes yes --set changeps1 no
-    - conda update -q conda
-    # Useful for debugging any issues with conda
-    - conda info -a
-    # packages required by SoS
-    - pip install jedi pyyaml psutil tqdm 
-    - pip install fasteners pygments ipython ptpython networkx pydot pydotplus nose 
-    - pip install entrypoints numpy pandas
+  - set PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%
+  - conda config --set always_yes yes --set changeps1 no
+  - conda update -q conda
+  # Useful for debugging any issues with conda
+  - conda info -a
+  # packages required by SoS
+  - pip install jedi pyyaml psutil tqdm
+  - pip install fasteners pygments ipython ptpython networkx pydot pydotplus nose
+  - pip install entrypoints numpy pandas
 
-    # install sos
-    - pip install pytest
-    - pip install .
+  # install sos
+  - pip install pytest
+  - pip install .
 
 test_script:
-    - cd test
-    - pytest -x -v
-      #
-      #on_finish:
-      #- ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+  - cd test
+  - pytest -v
+    #
+    #on_finish:
+    #- ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
 # do not report coverage because codacy only accept coverage for each commit
 #
@@ -54,9 +53,7 @@ test_script:
 #    - python-codacy-coverage -r coverage.xml
 
 notifications:
-    - provider: Email
-      to:
-        - ben.bob@gmail.com
-      on_build_status_changed: true
-
-
+  - provider: Email
+    to:
+      - ben.bob@gmail.com
+    on_build_status_changed: true

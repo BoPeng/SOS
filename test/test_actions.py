@@ -349,7 +349,7 @@ def testRuby():
 
 
 @pytest.mark.skipif(
-    not with_network or 'TRAVIS' in os.environ,
+    not with_network or 'TRAVIS' in os.environ or 'APPVEYOR' in os.environ,
     reason='Skip test because of no internet connection or in travis test')
 def testDownload(temp_factory, clear_now_and_after):
     '''Test download of resources'''
@@ -386,7 +386,7 @@ def testDownload(temp_factory, clear_now_and_after):
 
 
 @pytest.mark.skipif(
-    not with_network or 'TRAVIS' in os.environ,
+    not with_network or 'TRAVIS' in os.environ or 'APPVEYOR' in os.environ,
     reason='Skip test because of no internet connection or in travis test')
 def testDownloadMissingFile(temp_factory, clear_now_and_after):
 
@@ -407,7 +407,7 @@ def testDownloadMissingFile(temp_factory, clear_now_and_after):
 
 
 @pytest.mark.skipif(
-    not with_network or 'TRAVIS' in os.environ,
+    not with_network or 'TRAVIS' in os.environ or 'APPVEYOR' in os.environ,
     reason='Skip test because of no internet connection or in travis test')
 def testDownloadLargeFile(temp_factory, clear_now_and_after):
     # test decompress tar.gz, .zip and .gz files

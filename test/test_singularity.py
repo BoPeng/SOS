@@ -45,7 +45,9 @@ echo 'Echo'
         wf = script.workflow()
         Base_Executor(wf).run()
 
-    @unittest.skipIf(not shutil.which('singularity') or sys.platform == 'win32'  or 'TRAVIS' in os.environ,
+    @unittest.skipIf(not shutil.which('singularity') or
+                     sys.platform == 'win32' or 'TRAVIS' in os.environ or
+                     'APPVEYOR' in os.environ,
                      'Skip test because docker is not installed.')
     def test_singularity_build_linux_image(self):
         '''Test action singularity build, needs authentication so no travis test'''
@@ -65,7 +67,9 @@ From: ubuntu:16.04
         wf = script.workflow()
         Base_Executor(wf).run()
 
-    @unittest.skipIf(not shutil.which('singularity') or sys.platform == 'win32' or 'TRAVIS' in os.environ,
+    @unittest.skipIf(not shutil.which('singularity') or
+                     sys.platform == 'win32' or 'TRAVIS' in os.environ or
+                     'APPVEYOR' in os.environ,
                      'Skip test because docker is not installed.')
     def test_singularity_build_from_shub(self):
         # needs authentication and cannot test on travis

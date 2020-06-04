@@ -15,6 +15,31 @@ from sos.utils import env
 from sos.workflow_executor import Base_Executor
 from sos import execute_workflow
 
+
+def assertDAG(dag, content):
+    '''Compare the content of dag in a file, to one of more DAG (strings).'''
+    if isinstance(dag, str):
+        with open(dag) as d:
+            # only get the first DAG
+            dot = 'strict' + d.read().split('strict')[1]
+    else:
+        out = StringIO()
+        dag.save(out)
+        dot = out.getvalue()
+
+    def sorted_dot(dot):
+        return sorted([
+            x.strip()
+            for x in dot.split('\n')
+            if x.strip() and not 'digraph' in x
+        ])
+
+    if isinstance(content, str):
+        assert sorted_dot(dot) == sorted_dot(content)
+    else:
+        assert sorted_dot(dot) in [sorted_dot(x) for x in content]
+
+
 class TestDAG(unittest.TestCase):
 
     def setUp(self):
@@ -1004,7 +1029,8 @@ run:
         #
         # test 1, we only need to generate target 'B1.txt'
         Base_Executor(
-            wf, config={
+            wf,
+            config={
                 'output_dag': 'test_outofdag1.dot',
                 'trace_existing': True
             }).initialize_dag(targets=['B1.txt'])
@@ -1030,7 +1056,8 @@ strict digraph "" {
 ''')
         # test 2, we would like to generate two files
         Base_Executor(
-            wf, config={
+            wf,
+            config={
                 'output_dag': 'test_outofdag2.dot',
                 'trace_existing': True
             }).initialize_dag(targets=['B2.txt', 'C2.txt'])
@@ -1055,7 +1082,8 @@ strict digraph "" {
         # test 3, generate two separate trees
         #
         Base_Executor(
-            wf, config={
+            wf,
+            config={
                 'output_dag': 'test_outofdag3.dot',
                 'trace_existing': True
             }).initialize_dag(targets=['B3.txt', 'C2.txt'])
@@ -1200,28 +1228,6 @@ c_20 -> b_20;
 ''')
         file_target('test.dot').unlink()
 
-    def test_multi_named_output(self):
-        '''Test DAG built from multiple named_output #1166'''
-        script = SoS_Script('''
-[A]
-output: A='a.txt', B='b.txt'
-_output.touch()
-
-[default]
-input: named_output('A'), named_output('B')
-''')
-        wf = script.workflow()
-        Base_Executor(wf, config={'output_dag': 'test_named_output.dot'}).run()
-        # note that A2 is no longer mentioned
-        self.assertDAG(
-            'test_named_output.dot', '''
-strict digraph "" {
-default;
-"A (B)";
-"A (B)" -> default;
-}
-''')
-
     def test_compound_workflow(self):
         '''Test the DAG of compound workflow'''
         script = SoS_Script('''
@@ -1282,7 +1288,6 @@ A_2 -> B;
 "C (a.txt)" -> B;
 }''')
 
-
     def test_provides_so_s_variable(self):
         '''Test provides non-filename targets #1341'''
         execute_workflow('''
@@ -1294,5 +1299,34 @@ depends: sos_variable('numNotebooks')
 print(f"There are {numNotebooks} notebooks in this directory")
         ''')
 
-if __name__ == '__main__':
-    unittest.main()
+
+def test_multi_named_output(clear_now_and_after):
+    '''Test DAG built from multiple named_output #1166'''
+    clear_now_and_after('a.txt', 'b.txt', 'test_named_output.dot')
+
+    execute_workflow(
+        '''
+        [A]
+        output: A='a.txt', B='b.txt'
+        _output.touch()
+
+        [default]
+        input: named_output('A'), named_output('B')
+        ''',
+        options={'output_dag': 'test_named_output.dot'})
+    # note that A2 is no longer mentioned
+    assertDAG('test_named_output.dot', [
+        '''
+        strict digraph "" {
+        default;
+        "A (B)";
+        "A (B)" -> default;
+        }
+        ''', '''
+        strict digraph "" {
+        default;
+        "A (A)";
+        "A (A)" -> default;
+        }
+        '''
+    ])

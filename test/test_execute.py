@@ -1408,15 +1408,6 @@ depends: 'non-existent.txt'
         wf = script.workflow()
         self.assertRaises(Exception, Base_Executor(wf).run)
 
-    @unittest.skipIf(
-        'TRAVIS' in os.environ,
-        'Skip test because travis fails on this test for unknown reason')
-    def test_execute_i_pynb(self):
-        '''Test extracting and executing workflow from .ipynb files'''
-        script = SoS_Script(filename='sample_workflow.ipynb')
-        wf = script.workflow()
-        Base_Executor(wf).run()
-
     def test_output_report(self):
         '''Test generation of report'''
         if os.path.isfile('report.html'):
@@ -2826,3 +2817,13 @@ def test_multi_depends(clear_now_and_after, temp_factory):
     for file in ('dbsnp.vcf', 'hg19.fa', 'f1.bam', 'f2.bam', 'f1.bam.idx',
                  'f2.bam.idx'):
         assert os.path.isfile(file)
+
+
+# @pytest.mark.skipif(
+#     'TRAVIS' in os.environ,
+#     reason='Skip test because travis fails on this test for unknown reason')
+def test_execute_ipynb():
+    '''Test extracting and executing workflow from .ipynb files'''
+    script = SoS_Script(filename='sample_workflow.ipynb')
+    wf = script.workflow()
+    Base_Executor(wf).run()

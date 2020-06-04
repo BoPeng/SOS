@@ -13,6 +13,7 @@ from sos.utils import env
 from sos.workflow_executor import Base_Executor
 from sos import execute_workflow
 
+
 class TestNested(unittest.TestCase):
 
     def setUp(self):
@@ -332,7 +333,7 @@ sos_run(wf, shared='executed')
         self.assertEqual(env.sos_dict['executed'],
                          ['default', 'a_1', 'a_2', 'a_3'])
 
-    def test_so_s_run(self):
+    def test_sos_run(self):
         '''Test action sos_run with keyword parameters'''
         for f in ['0.txt', '1.txt']:
             if file_target(f).exists():
@@ -671,7 +672,7 @@ sos_run('A', idx=i)
         Base_Executor(wf, config={'worker_procs': ['8']}).run()
         self.assertTrue(time.time() - st < 30)
 
-    def test_so_s_multi_workflow(self):
+    def test_sos_multi_workflow(self):
         '''Test multiple workflows in sos_run '''
         script = SoS_Script('''
 [B]
@@ -775,6 +776,7 @@ sos_run('A', targets='B_out.txt')
 ''')
         self.assertTrue(os.path.isfile('A_out.txt'))
         self.assertTrue(os.path.isfile('B_out.txt'))
+
 
 if __name__ == '__main__':
     #suite = unittest.defaultTestLoader.loadTestsFromTestCase(TestParser)

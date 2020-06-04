@@ -1622,7 +1622,7 @@ output: output_from('Aa')
         wf = script.workflow()
         self.assertRaises(Exception, Base_Executor(wf).run)
 
-    def test_so_s_step_in_input(self):
+    def test_sos_step_in_input(self):
         '''Test sos_step in input statement'''
         script = SoS_Script('''
 [A]
@@ -1635,7 +1635,7 @@ input: sos_step('A')
         wf = script.workflow()
         self.assertRaises(Exception, Base_Executor(wf).run)
 
-    def test_so_s_variable_in_input(self):
+    def test_sos_variable_in_input(self):
         '''Test sos_variable in input statement'''
         script = SoS_Script('''
 [A]
@@ -1647,7 +1647,7 @@ input: sos_variable('a')
         wf = script.workflow()
         self.assertRaises(Exception, Base_Executor(wf).run)
 
-    def test_so_s_variable_in_output(self):
+    def test_sos_variable_in_output(self):
         '''Test sos_variable in output statement'''
         script = SoS_Script('''
 [A]
@@ -1659,7 +1659,7 @@ output: sos_variable('a')
         wf = script.workflow()
         self.assertRaises(Exception, Base_Executor(wf).run)
 
-    def test_so_s_variable_with_keywordargument(self):
+    def test_sos_variable_with_keywordargument(self):
         '''Test output_from in output statement'''
         script = SoS_Script('''
 [A]

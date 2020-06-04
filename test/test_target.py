@@ -88,7 +88,7 @@ class TestTarget(unittest.TestCase):
         self.assertEqual(a._groups[1]._indexes, [0])
         self.assertEqual(len(a._groups[1]._labels), 1)
 
-    def test_so_s_targets_signature(self):
+    def test_sos_targets_signature(self):
         '''Test save and validate signatures of sos_targets'''
         with open('a.txt', 'w') as a:
             a.write('text1')
@@ -177,7 +177,7 @@ print(i)
 print(f'Input is {_input} {var}')
 ''')
 
-    def test_merging_of_so_s_targets(self):
+    def test_merging_of_sos_targets(self):
         '''Test merging of multiple sos targets'''
         # merge 0 to 0
         res = sos_targets('a.txt', 'b.txt',
@@ -546,7 +546,7 @@ run:
         os.remove('b.txt')
         Base_Executor(wf).run()
 
-    def test_so_s_step(self):
+    def test_sos_step(self):
         '''Test target sos_step'''
         for file in ['t1.txt', 't2.txt', '5.txt', '10.txt', '20.txt']:
             if file_target(file).exists():

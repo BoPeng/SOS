@@ -1467,7 +1467,7 @@ run: expand=True
             content = rep.read()
         self.assertTrue('Execution DAG' in content)
 
-    def test_so_s_step_with_output(self):
+    def test_sos_step_with_output(self):
         '''Test checking output of sos_step #981'''
         script = SoS_Script('''
 [step]
@@ -1481,7 +1481,7 @@ depends: sos_step('step')
         wf = script.workflow()
         Base_Executor(wf).run()
 
-    def test_multi_so_s_step(self):
+    def test_multi_sos_step(self):
         '''Test matching 'a_1', 'a_2' etc with sos_step('a')'''
         for file in ('a_1', 'a_2'):
             if file_target(file).exists():

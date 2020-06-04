@@ -1164,7 +1164,7 @@ run: expand=True
         Base_Executor(wf).run()
         self.assertTrue(file_target('a.txt.bak').target_exists())
 
-    def test_so_s_step_miniworkflow(self):
+    def test_sos_step_miniworkflow(self):
         '''Test the addition of mini forward workflows introduced by sos_step'''
         script = SoS_Script('''
 [a_1]
@@ -1288,7 +1288,7 @@ A_2 -> B;
 "C (a.txt)" -> B;
 }''')
 
-    def test_provides_so_s_variable(self):
+    def test_provides_sos_variable(self):
         '''Test provides non-filename targets #1341'''
         execute_workflow('''
 [count: provides=sos_variable('numNotebooks')]

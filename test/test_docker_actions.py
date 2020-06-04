@@ -222,7 +222,7 @@ run: container='docker://compbio/ngseasy-fastqc:1.0-r001',
         Base_Executor(wf).run()
 
     @unittest.skipIf(
-        not has_docker or 'TRAVIS' in os.environ or sys.platform == 'win32',
+        not has_docker or sys.platform == 'win32',
         'Skip test because docker is not installed, or in travis, which failed for unknown reason'
     )
     def test_docker_image_from_file(self):

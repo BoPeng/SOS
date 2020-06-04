@@ -1988,169 +1988,6 @@ depends: traced(_input.with_suffix('.bam.bai'))
         self.assertEqual(res['__completed__']['__step_completed__'], 2)
         self.assertEqual(res['__completed__']['__step_skipped__'], 1)
 
-    @unittest.skipIf(
-        'TRAVIS' in os.environ or sys.platform == 'win32',
-        'Skip test because travis fails on this test for unknown reason, also due to a bug in psutil under windows'
-    )
-    def test_kill_worker(self):
-        '''Test if the workflow can error out after a worker is killed'''
-        import psutil
-        import time
-        with open('testKill.sos', 'w') as tk:
-            tk.write('''
-import time
-
-[1]
-time.sleep(4)
-
-[2]
-time.sleep(4)
-''')
-        ret = subprocess.Popen(['sos', 'run', 'testKill'])
-        proc = psutil.Process(ret.pid)
-        while True:
-            children = proc.children(recursive=True)
-            if children:
-                children[0].terminate()
-                break
-            time.sleep(0.1)
-        ret.wait()
-        #self.assertNotEqual(ret.returncode, 0)
-        #
-        ret = subprocess.Popen(['sos', 'run', 'testKill'])
-        proc = psutil.Process(ret.pid)
-        while True:
-            children = proc.children(recursive=True)
-            if children:
-                children[0].kill()
-                break
-            time.sleep(0.1)
-        ret.wait()
-        #self.assertNotEqual(ret.returncode, 0)
-
-    @unittest.skipIf(
-        'TRAVIS' in os.environ,
-        'Skip test because travis fails on this test for unknown reason')
-    def test_kill_substep_worker(self):
-        '''Test if the workflow can error out after a worker is killed'''
-        import psutil
-        import time
-        with open('testKillSubstep.sos', 'w') as tk:
-            tk.write('''
-import time
-
-[1]
-input: for_each=dict(i=range(4))
-time.sleep(2)
-''')
-        ret = subprocess.Popen(['sos', 'run', 'testKillSubstep', '-j3'])
-        proc = psutil.Process(ret.pid)
-        while True:
-            children = proc.children(recursive=True)
-            print(children)
-            if children:
-                children[-1].terminate()
-                break
-            time.sleep(0.1)
-        ret.wait()
-
-        #self.assertNotEqual(ret.returncode, 0)
-        #
-        ret = subprocess.Popen(['sos', 'run', 'testKillSubstep', '-j3'])
-        proc = psutil.Process(ret.pid)
-        while True:
-            children = proc.children(recursive=True)
-            if children:
-                children[-1].kill()
-                break
-            time.sleep(0.1)
-        ret.wait()
-        #
-        # the sos command might still succeed if the killed worker has not received any
-        # job
-        #self.assertNotEqual(ret.returncode, 0)
-
-    @unittest.skipIf(
-        sys.platform == 'win32' or 'TRAVIS' in os.environ,
-        'Cannot test due to a bug (ampaolo/psutil#875) with psutils under windows'
-    )
-    def test_kill_task(self):
-        '''Test if the workflow can error out after a worker is killed'''
-        subprocess.call(['sos', 'purge', '--all'])
-        import psutil
-        import time
-        with open('testKillTask.sos', 'w') as tk:
-            tk.write('''
-
-[1]
-task:
-import time
-time.sleep(10)
-''')
-        ret = subprocess.Popen(
-            ['sos', 'run', 'testKillTask', '-s', 'force', '-q', 'localhost'])
-        proc = psutil.Process(ret.pid)
-        while True:
-            children = proc.children(recursive=True)
-            execute = [x for x in children if 'execute' in x.cmdline()]
-            if len(execute) >= 1:
-                # a bug: if the process is killed too quickly (the signal
-                # function is not called), this will fail.
-                time.sleep(1)
-                execute[0].terminate()
-                break
-            time.sleep(0.1)
-        ret.wait()
-        self.assertNotEqual(ret.returncode, 0)
-        #
-        ret = subprocess.Popen(
-            ['sos', 'run', 'testKillTask', '-q', 'localhost'])
-        proc = psutil.Process(ret.pid)
-        while True:
-            children = proc.children(recursive=True)
-            execute = [x for x in children if 'execute' in x.cmdline()]
-            if len(execute) >= 1:
-                time.sleep(1)
-                execute[0].kill()
-                break
-            time.sleep(0.1)
-        ret.wait()
-        self.assertNotEqual(ret.returncode, 0)
-
-    @unittest.skipIf('TRAVIS' in os.environ, 'Temporarily disable on TRAVIS')
-    def test_restart_orphaned_tasks(self):
-        '''Test restarting orphaned tasks which displays as running at first.'''
-        import psutil
-        import time
-        subprocess.call(['sos', 'purge', '--all'])
-
-        with open('testOrphan.sos', 'w') as tk:
-            tk.write('''
-
-[1]
-task:
-import time
-time.sleep(12)
-''')
-        ret = subprocess.Popen(
-            ['sos', 'run', 'testOrphan', '-s', 'force', '-q', 'localhost'])
-        proc = psutil.Process(ret.pid)
-        while True:
-            children = proc.children(recursive=True)
-            execute = [x for x in children if 'execute' in x.cmdline()]
-            if len(execute) >= 1:
-                # a bug: if the process is killed too quickly (the signal
-                # function is not called), this will fail.
-                time.sleep(1)
-                execute[0].kill()
-                break
-            time.sleep(0.1)
-        proc.kill()
-        #
-        ret = subprocess.Popen(['sos', 'run', 'testOrphan', '-q', 'localhost'])
-        ret.wait()
-        self.assertEqual(ret.returncode, 0)
-
     def test_error_handling_of_step(self):
         # test fail_if of killing another running substep
         def cleanup():
@@ -2819,11 +2656,161 @@ def test_multi_depends(clear_now_and_after, temp_factory):
         assert os.path.isfile(file)
 
 
-# @pytest.mark.skipif(
-#     'TRAVIS' in os.environ,
-#     reason='Skip test because travis fails on this test for unknown reason')
 def test_execute_ipynb():
     '''Test extracting and executing workflow from .ipynb files'''
     script = SoS_Script(filename='sample_workflow.ipynb')
     wf = script.workflow()
     Base_Executor(wf).run()
+
+
+@pytest.mark.skipif(
+    sys.platform == 'win32',
+    reason='Skip test because travis fails on this test for unknown reason, also due to a bug in psutil under windows'
+)
+def test_kill_worker(script_factory):
+    '''Test if the workflow can error out after a worker is killed'''
+    import psutil
+    import time
+
+    script_file = script_factory('''
+        import time
+
+        [1]
+        time.sleep(4)
+
+        [2]
+        time.sleep(4)
+        ''')
+    ret = subprocess.Popen(['sos', 'run', script_file])
+    proc = psutil.Process(ret.pid)
+    while True:
+        children = proc.children(recursive=True)
+        if children:
+            children[0].terminate()
+            break
+        time.sleep(0.1)
+    ret.wait()
+
+    ret = subprocess.Popen(['sos', 'run', script_file])
+    proc = psutil.Process(ret.pid)
+    while True:
+        children = proc.children(recursive=True)
+        if children:
+            children[0].kill()
+            break
+        time.sleep(0.1)
+    ret.wait()
+
+
+def test_kill_substep_worker(script_factory):
+    '''Test if the workflow can error out after a worker is killed'''
+    import psutil
+    import time
+
+    script_file = script_factory('''
+        import time
+
+        [1]
+        input: for_each=dict(i=range(4))
+        time.sleep(2)
+        ''')
+    ret = subprocess.Popen(['sos', 'run', script_file, '-j3'])
+    proc = psutil.Process(ret.pid)
+    while True:
+        children = proc.children(recursive=True)
+        print(children)
+        if children:
+            children[-1].terminate()
+            break
+        time.sleep(0.1)
+    ret.wait()
+
+    ret = subprocess.Popen(['sos', 'run', script_file, '-j3'])
+    proc = psutil.Process(ret.pid)
+    while True:
+        children = proc.children(recursive=True)
+        if children:
+            children[-1].kill()
+            break
+        time.sleep(0.1)
+    ret.wait()
+
+
+@pytest.mark.skipif(
+    True, reason='This test needs to be improved to make it consistent')
+def test_kill_task(script_factory):
+    '''Test if the workflow can error out after a worker is killed'''
+    subprocess.call(['sos', 'purge', '--all'])
+    import psutil
+    import time
+
+    script_file = script_factory('''
+        [1]
+        task:
+        import time
+        time.sleep(10)
+        ''')
+    ret = subprocess.Popen(
+        ['sos', 'run', script_file, '-s', 'force', '-q', 'localhost'])
+    proc = psutil.Process(ret.pid)
+
+    while True:
+        children = proc.children(recursive=True)
+        execute = [x for x in children if 'execute' in x.cmdline()]
+        if len(execute) >= 1:
+            # a bug: if the process is killed too quickly (the signal
+            # function is not called), this will fail.
+            time.sleep(1)
+            execute[0].terminate()
+            break
+        time.sleep(0.1)
+    ret.wait()
+    assert ret.returncode != 0
+
+    ret = subprocess.Popen(['sos', 'run', script_file, '-q', 'localhost'])
+    proc = psutil.Process(ret.pid)
+    while True:
+        children = proc.children(recursive=True)
+        execute = [x for x in children if 'execute' in x.cmdline()]
+        if len(execute) >= 1:
+            time.sleep(1)
+            execute[0].kill()
+            break
+        time.sleep(0.1)
+    ret.wait()
+    assert ret.returncode != 0
+
+
+@pytest.mark.skipif(
+    True, reason='This test needs to be improved to make it consistent')
+def test_restart_orphaned_tasks(script_factory):
+    '''Test restarting orphaned tasks which displays as running at first.'''
+    import psutil
+    import time
+    subprocess.call(['sos', 'purge', '--all'])
+
+    script_file = script_factory('''
+        [1]
+        task:
+        import time
+        time.sleep(12)
+        ''')
+    ret = subprocess.Popen(
+        ['sos', 'run', script_file, '-s', 'force', '-q', 'localhost'])
+    proc = psutil.Process(ret.pid)
+
+    while True:
+        children = proc.children(recursive=True)
+        execute = [x for x in children if 'execute' in x.cmdline()]
+        if len(execute) >= 1:
+            # a bug: if the process is killed too quickly (the signal
+            # function is not called), this will fail.
+            time.sleep(1)
+            execute[0].kill()
+            break
+        time.sleep(0.1)
+    proc.kill()
+    #
+    ret = subprocess.Popen(['sos', 'run', script_file, '-q', 'localhost'])
+    ret.wait()
+    assert ret.returncode == 0

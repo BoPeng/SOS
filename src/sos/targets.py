@@ -23,7 +23,7 @@ import pkg_resources
 
 from .utils import (Error, env, pickleable, short_repr, stable_repr)
 from .pattern import extract_pattern
-from .eval import interpolate
+from .eval import interpolate, get_config
 from .controller import request_answer_from_controller, send_message_to_controller
 
 try:
@@ -624,7 +624,7 @@ class path(type(Path())):
         if 'paths' not in env.sos_dict['CONFIG']['hosts'][host]:
             return []
         else:
-            return list(env.sos_dict['CONFIG']['hosts'][host]['paths'].keys())
+            return list(get_config(['hosts', host, 'paths']).keys())
 
     def _init(self, template=None):
         super(path, self)._init(template)
@@ -646,10 +646,10 @@ class path(type(Path())):
             return self
         try:
             return self._from_parts([
-                env.sos_dict['CONFIG']['hosts']
-                [env.sos_dict.get('__host__', 'localhost'
-                                 ) if host is None else host]['paths'][
-                                     self._parts[0][1:]]
+                get_config(
+                    'hosts',
+                    env.sos_dict.get('__host__', 'localhost')
+                    if host is None else host, 'paths', self._parts[0][1:])
             ] + self._parts[1:])
         except Exception:
             if host is None and '__host__' not in env.sos_dict:

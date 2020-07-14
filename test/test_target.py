@@ -674,45 +674,39 @@ a = 1
         wf = script.workflow()
         self.assertRaises(Exception, Base_Executor(wf).run)
 
-    def test_named_path(self):
-        '''Test the use of option name of path'''
-        script = SoS_Script('''
-import os
-# windows might not have HOME
-if 'HOME' in os.environ:
-    assert path('#home') == os.environ['HOME']
-assert 'home' in path.names()
-assert 'home' in path.names('docker')
-''')
-        wf = script.workflow()
-        Base_Executor(
-            wf,
-            config={
-                'config_file':
-                    os.path.join(os.path.expanduser('~'), 'docker.yml')
-            }).run()
 
-    def test_temp_file(self):
-        '''Test sos_tempfile target'''
-        script = SoS_Script('''
-filename = sos_tempfile(name='a')
+def test_temp_file():
+    '''Test sos_tempfile target'''
+    execute_workflow('''
+        filename = sos_tempfile(name='a')
 
-assert filename == sos_tempfile(name='a')
-assert filename != sos_tempfile(name='b')
-assert filename != sos_tempfile()
-assert sos_tempfile() != sos_tempfile()
+        assert filename == sos_tempfile(name='a')
+        assert filename != sos_tempfile(name='b')
+        assert filename != sos_tempfile()
+        assert sos_tempfile() != sos_tempfile()
 
-assert sos_tempfile(prefix='some') != sos_tempfile(prefix='some')
-assert sos_tempfile(suffix='.sh') != sos_tempfile(suffix='.sh')
-assert sos_tempfile(dir='.') != sos_tempfile(dir='.')
+        assert sos_tempfile(prefix='some') != sos_tempfile(prefix='some')
+        assert sos_tempfile(suffix='.sh') != sos_tempfile(suffix='.sh')
+        assert sos_tempfile(dir='.') != sos_tempfile(dir='.')
 
-assert sos_tempfile('a.txt') == sos_tempfile('a.txt')
-assert sos_tempfile(path('a.txt')) == sos_tempfile(path('a.txt'))
-assert sos_tempfile(file_target('a.txt')) == sos_tempfile(file_target('a.txt'))
+        assert sos_tempfile('a.txt') == sos_tempfile('a.txt')
+        assert sos_tempfile(path('a.txt')) == sos_tempfile(path('a.txt'))
+        assert sos_tempfile(file_target('a.txt')) == sos_tempfile(file_target('a.txt'))
 
-''')
-        wf = script.workflow()
-        Base_Executor(wf).run()
+    ''')
 
-if __name__ == '__main__':
-    unittest.main()
+
+def test_named_path():
+    '''Test the use of option name of path'''
+    execute_workflow(
+        '''
+        import os
+        # windows might not have HOME
+        if 'HOME' in os.environ:
+            assert path('#home') == os.environ['HOME']
+            assert 'home' in path.names()
+            assert 'home' in path.names('docker')
+    ''',
+        options={
+            'config_file': os.path.join(os.path.expanduser('~'), 'docker.yml')
+        })

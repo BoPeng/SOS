@@ -428,6 +428,27 @@ def copy_public_key(host, agent, password):
     return 'OK'
 
 
+def create_public_key():
+    try:
+        cmd = 'ssh-keygen -t rsa'
+        env.logger.info(cmd)
+        p = pexpect.spawn(cmd, echo=False)
+        while True:
+            i = p.expect([
+                "Enter passphrase (empty for no passphrase)",
+                "Enter same passphrase again:", 'Overwrite (y/n)', pexpect.EOF
+            ])
+            if i == 0 or i == 1:
+                p.sendline('\n')
+            if i == 2:
+                p.sendline('y\n')
+            if i == 3:
+                break
+    except Exception as e:
+        p.close()
+        raise RuntimeError(f'Failed to create a public key: {e}')
+
+
 def setup_remote_access(cfg, hosts=[], password='', verbosity=1):
     env.verbosity = verbosity
     all_hosts = cfg.get('hosts', [])
@@ -462,23 +483,17 @@ def setup_remote_access(cfg, hosts=[], password='', verbosity=1):
             else:
                 host_agent = Namespace(address=host, port=22)
         except Exception as e:
-            env.logger.error(f'Failed to start task engine {host}: {e}')
+            env.logger.error(
+                f'Failed to start set up remote engine for {host}: {e}')
             continue
 
         if os.path.isfile(public_key):
             env.logger.info('Using existing public key .ssh/id_rsa.pub')
         else:
             env.logger.info(f'Public key {public_key} is found. Creating one.')
-            try:
-                subprocess.check_output(
-                    'echo | ssh-keygen -t rsa',
-                    shell=True,
-                    stderr=subprocess.STDOUT).decode()
-                if not os.path.isfile(public_key):
-                    raise RuntimeError('public key not found after ssh-keygen')
-            except subprocess.CalledProcessError as e:
-                print(e.output.decode())
-                raise RuntimeError(f'Failed to create public key: {e}')
+            create_public_key()
+            if not os.path.isfile(public_key):
+                raise RuntimeError('Failed to create public key.')
         #
         response = copy_public_key(host, host_agent, password)
         stty_sane()

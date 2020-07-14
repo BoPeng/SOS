@@ -5,6 +5,7 @@
 
 import ast
 import sys
+import copy
 import pickle
 import contextlib
 
@@ -27,12 +28,93 @@ def interpolate(text, global_dict=None, local_dict=None):
 def cfg_interpolate(text, local_dict={}):
     # handle nested interpolate ...
     while True:
-        res = interpolate(text, local_dict, env.sos_dict.get('CONFIG', {}))
+        res = interpolate(text, env.sos_dict.get('CONFIG', {}), local_dict)
         if res == text:
             break
         else:
             text = res
     return res
+
+
+def get_config(*args, **kwargs):
+    '''
+    Obtain configuration from sos configuration files, with variable intepolation.
+
+    The variables are
+    '''
+    default = kwargs.get('default', None)
+    #
+    keys = []
+    custom_dict = {}
+    for arg in args:
+        if isinstance(arg, str):
+            keys.append(arg)
+        elif isinstance(arg, (list, tuple)):
+            keys.extend(list(arg))
+        elif isinstance(arg, dict):
+            custom_dict.update(arg)
+        else:
+            raise ValueError(f'Unacceptable parameter {arg} for get_config.')
+    #
+    custom_dict.update({x: y for x, y in kwargs.items() if x != 'default'})
+    #
+    local_dict = {}
+    val = env.sos_dict.get('CONFIG', {})
+    while True:
+        if not keys:
+            break
+        if not isinstance(val, dict):
+            raise ValueError(
+                f'A dictionary is expected to get item with key {".".join(keys)}: {val} obtained.'
+            )
+        local_dict = val
+        key = keys[0]
+        if key in val:
+            keys.pop(0)
+            val = val[key]
+            continue
+        elif '.' in key:
+            found = False
+            subkeys = key.split('.')
+            for j in range(len(subkeys)):
+                subkey = '.'.join(subkeys[:j + 1])
+                if subkey in val:
+                    found = True
+                    val = val[subkey]
+                    keys[0] = '.'.join(subkeys[j + 1:])
+                    if not keys[0]:
+                        keys.pop(0)
+                    break
+            if not found:
+                val = default
+        else:
+            val = default
+    #
+    if isinstance(val, str):
+        local_dict.update(custom_dict)
+        return cfg_interpolate(val, local_dict)
+    elif isinstance(val, dict):
+
+        def interpolate_dict(item, custom_dict):
+            res = {}
+            for k, v in item.items():
+                if isinstance(v, dict):
+                    # v should be processed in place
+                    res[k] = interpolate_dict(v, custom_dict)
+                elif isinstance(v, str):
+                    if '{' in v and '}' in v:
+                        local_dict = copy.deepcopy(item)
+                        local_dict.update(custom_dict)
+                        res[k] = cfg_interpolate(v, local_dict)
+                    else:
+                        res[k] = v
+                else:
+                    res[k] = v
+            return res
+
+        return interpolate_dict(val, custom_dict)
+    else:
+        return val
 
 
 def get_accessed(node):
@@ -85,7 +167,8 @@ def get_used_in_func(node):
     return names
 
 
-def used_in_func(statement: str, filename: str = '<string>',
+def used_in_func(statement: str,
+                 filename: str = '<string>',
                  mode: str = 'exec'):
     '''Parse a Python statement and analyze the symbols used. The result
     will be used to determine what variables a step depends upon.'''
@@ -126,7 +209,8 @@ class StatementHash(object):
 stmtHash = StatementHash()
 
 
-def SoS_exec(script: str, _dict: dict = None,
+def SoS_exec(script: str,
+             _dict: dict = None,
              return_result: bool = True) -> None:
     '''Execute a statement.'''
     if _dict is None:

@@ -5,15 +5,22 @@ import shutil
 import tempfile
 import textwrap
 import pathlib
+import yaml
 
 
 @pytest.fixture
 def config_factory():
     filename = tempfile.NamedTemporaryFile(suffix='.yml', delete=False).name
 
-    def get_config(text):
+    def get_config(text_or_dict):
         with open(filename, 'w') as conf:
-            conf.write(textwrap.dedent(text))
+            if isinstance(text_or_dict, str):
+                conf.write(textwrap.dedent(text_or_dict))
+            elif isinstance(text_or_dict, dict):
+                yaml.dump(text_or_dict, conf)
+            else:
+                raise ValueError(
+                    'A text or dictionary is expected for config_factory.')
         return filename
 
     yield get_config

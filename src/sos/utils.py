@@ -1410,42 +1410,10 @@ def load_config_files(filename=None):
     for v in cfg.values():
         if isinstance(v, dict):
             process_based_on(cfg, v)
-    # interpolation
-    def interpolate_value(global_dict, item):
-        res = {}
-        for k, v in item.items():
-            if isinstance(v, dict):
-                # v should be processed in place
-                res[k] = interpolate_value(global_dict, v)
-            elif isinstance(v, str) and '{' in v and '}' in v and not (
-                    k.endswith('_template') or k.endswith('_cmd')):
-                try:
-                    res[k] = eval(as_fstring(v), copy.copy(item), global_dict)
-                except Exception as e:
-                    # we do not care about other places when interpolation fails
-                    env.logger.debug(f'Failed to interpolate {k}={v}: {e}')
-                    res[k] = v
-            else:
-                res[k] = v
-        return res
 
-    #
-    res = {}
-    global_dict = copy.deepcopy(cfg)
-    exec('import os, sys', global_dict)
-    for k, v in cfg.items():
-        if isinstance(v, dict):
-            res[k] = interpolate_value(global_dict, v)
-        elif isinstance(v, str) and '{' in v and '}' in v:
-            try:
-                res[k] = eval(as_fstring(v), global_dict)
-            except Exception:
-                res[k] = v
-        else:
-            res[k] = v
-    config_cache[(filename, filemtime, extra_cfg)] = res
-    env.sos_dict.set('CONFIG', res)
-    return res
+    config_cache[(filename, filemtime, extra_cfg)] = cfg
+    env.sos_dict.set('CONFIG', cfg)
+    return cfg
 
 
 def format_duration(time_diff_secs, short=True):

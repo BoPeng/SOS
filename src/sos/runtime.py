@@ -8,7 +8,6 @@ import pkg_resources
 from .pattern import expand_pattern
 from .targets import path, paths
 from .utils import get_output, sos_get_param
-from .eval import get_config
 
 # silent pyflakes
 sos_get_param, get_output, path, paths, expand_pattern

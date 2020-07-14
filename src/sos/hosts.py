@@ -1142,7 +1142,10 @@ class Host:
             # now we have definition for local and remote hosts
             cfg = env.sos_dict['CONFIG']['hosts']
             self.config = get_config(
-                'hosts', self.alias, allowed_keys=('paths', 'shared'))
+                'hosts',
+                self.alias,
+                excluded_keys=('paths', 'shared'),
+                raw_keys=('task_template', 'workflow_template', 'job_template'))
 
             # if local and remote hosts are the same
             if LOCAL == REMOTE or 'address' not in env.sos_dict['CONFIG'][

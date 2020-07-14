@@ -29,6 +29,7 @@ def cfg_interpolate(text, local_dict={}):
     # handle nested interpolate ...
     # we need to avoid containing our CONFIG with all the modules created by eval
     cfg_dict = copy.deepcopy(env.sos_dict.get('CONFIG', {}))
+    exec('import os', cfg_dict)
     while True:
         res = interpolate(text, cfg_dict, local_dict)
         if res == text:
@@ -40,12 +41,47 @@ def cfg_interpolate(text, local_dict={}):
 
 def get_config(*args, **kwargs):
     '''
-    Obtain configuration from sos configuration files, with variable intepolation.
+    Obtain configuration from sos configuration files, by default with variable intepolation.
 
-    The variables are
+    The basic way to use this function is to do
+
+       get_config('key')
+
+    which gets the value associated with configuration "key". If the value is a dictionary, you
+    can go into the dictionary with any of the following
+
+       get_config('key', 'key1')
+       get_config(['key', 'key1'])
+       get_config('key.key1')
+
+    The expressions are by default interpolated with variables defined in the order of,
+
+    1. specified from get_config
+    2. the same dictionary in which the expression is evaluated
+    3. the root of the configuration dictionary
+
+    You can specify variables as a dictionary
+
+        get_config('a', {'val': 5})
+
+    if the key does not conflict with other keywords, you can specify directly as keyword arguments
+
+        get_config('a', val=5)
+
+    The funciton accepts the following keyword parameters:
+
+      default: default value to return if the key is not found. Default to None.
+      raw: return raw values without interpolation.
+      raw_keys: keys that are not expanded
+      allowed_keys: retrieve only specified keys from a dicitonary.
+      exclude_keys: exclude specified keys
+
     '''
     default = kwargs.get('default', None)
     allowed_keys = kwargs.get('allowed_keys', None)
+    excluded_keys = kwargs.get('excluded_keys', None)
+    raw_keys = kwargs.get('raw_keys', None)
+    raw = kwargs.get('raw', False)
     #
     keys = []
     custom_dict = {}
@@ -60,7 +96,10 @@ def get_config(*args, **kwargs):
             raise ValueError(f'Unacceptable parameter {arg} for get_config.')
     #
     custom_dict.update({
-        x: y for x, y in kwargs.items() if x not in ('default', 'allowed_keys')
+        x: y
+        for x, y in kwargs.items()
+        if x not in ('default', 'allowed_keys', 'excluded_keys', 'raw_keys',
+                     'raw')
     })
     #
     local_dict = {}
@@ -95,6 +134,9 @@ def get_config(*args, **kwargs):
         else:
             val = default
     #
+    if raw is True:
+        return val
+
     if isinstance(val, str):
         local_dict.update(custom_dict)
         return cfg_interpolate(val, local_dict)
@@ -104,6 +146,11 @@ def get_config(*args, **kwargs):
             res = {}
             for k, v in item.items():
                 if allowed_keys and k not in allowed_keys:
+                    continue
+                if excluded_keys and k in excluded_keys:
+                    continue
+                if raw_keys and k in raw_keys:
+                    res[k] = v
                     continue
                 if isinstance(v, dict):
                     # v should be processed in place

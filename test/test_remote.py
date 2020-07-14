@@ -107,7 +107,7 @@ run:
 # [1]
 # sh:
 #    echo "1" > 1.txt
-# 
+#
 # [10]
 # task: to_host={'1.txt': '2.txt'}, from_host={'3.txt': '2.txt'}
 # with open('2.txt', 'a') as t:
@@ -148,26 +148,26 @@ with open('llp', 'w') as llp:
             }).run()
         self.assertTrue(os.path.isfile('llp'))
 
-    @unittest.skipIf(not has_docker, "Docker container not usable")
-    def test_from_host_option_dict(self):
-        # dict form
-        if os.path.isfile('llp'):
-            os.remove('llp')
+#     @unittest.skipIf(not has_docker, "Docker container not usable")
+#     def test_from_host_option_dict(self):
+#         # dict form
+#         if os.path.isfile('llp'):
+#             os.remove('llp')
 
-        script = SoS_Script('''
-[10]
-task: from_host={'llp': 'll'}
-with open('llp', 'w') as llp:
-    llp.write("LLP")
-''')
-        wf = script.workflow()
-        Base_Executor(
-            wf,
-            config={
-                'config_file': '~/docker.yml',
-                'default_queue': 'docker',
-            }).run()
-        self.assertTrue(os.path.isfile('llp'))
+#         script = SoS_Script('''
+# [10]
+# task: from_host={'llp': 'll'}
+# with open('llp', 'w') as llp:
+#     llp.write("LLP")
+# ''')
+#         wf = script.workflow()
+#         Base_Executor(
+#             wf,
+#             config={
+#                 'config_file': '~/docker.yml',
+#                 'default_queue': 'docker',
+#             }).run()
+#         self.assertTrue(os.path.isfile('llp'))
 
     @unittest.skipIf(not has_docker, "Docker container not usable")
     def test_local_from_host_option(self):
@@ -193,6 +193,8 @@ sh:
         self.assertTrue(os.path.isfile('llp'))
         os.remove('llp')
         # dict form is deprecated
+
+
 #         script = SoS_Script('''
 # [10]
 # task: from_host={'llp': 'll'}

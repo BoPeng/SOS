@@ -27,8 +27,10 @@ def interpolate(text, global_dict=None, local_dict=None):
 
 def cfg_interpolate(text, local_dict={}):
     # handle nested interpolate ...
+    # we need to avoid containing our CONFIG with all the modules created by eval
+    cfg_dict = copy.deepcopy(env.sos_dict.get('CONFIG', {}))
     while True:
-        res = interpolate(text, env.sos_dict.get('CONFIG', {}), local_dict)
+        res = interpolate(text, cfg_dict, local_dict)
         if res == text:
             break
         else:

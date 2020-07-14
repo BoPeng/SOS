@@ -15,7 +15,7 @@ from collections.abc import Sequence
 
 import pkg_resources
 
-from .eval import Undetermined, cfg_interpolate
+from .eval import Undetermined, cfg_interpolate, get_config
 from .syntax import SOS_LOGLINE
 from .targets import path, sos_targets
 from .task_engines import BackgroundProcess_TaskEngine
@@ -1061,21 +1061,21 @@ class Host:
                 return host
         for host, host_info in env.sos_dict['CONFIG']['hosts'].items():
             # find by key hostname
-            if 'hostname' in host_info and (
-                    host_info['hostname'].lower().split('.')[0] == hostname or
-                    host_info['hostname'].lower() == hostname.split('.')[0]):
-                return host
+            if 'hostname' in host_info:
+                hn = get_config('hosts', host, 'hostname').lower()
+                if hn.split('.')[0] == hostname or hn == hostname.split('.')[0]:
+                    return host
         for host, host_info in env.sos_dict['CONFIG']['hosts'].items():
             # find by alias
             if host.lower() == hostname:
                 return host
         for host, host_info in env.sos_dict['CONFIG']['hosts'].items():
             # find by address
-            if 'address' in host_info and (
-                    host_info['address'].split('@')[-1].lower() == hostname or
-                    host_info['address'].split(
-                        '.', 1)[0].split('@')[-1].lower() == hostname):
-                return host
+            if 'address' in host_info:
+                addr = get_config('hosts', host, 'address')
+                if addr.split('@')[-1].lower() == hostname or addr.split(
+                        '.', 1)[0].split('@')[-1].lower() == hostname:
+                    return host
         # try IP Address
         hostname = socket.gethostname()
         ips = socket.gethostbyname_ex(hostname)[2]
@@ -1083,9 +1083,10 @@ class Host:
         # if the IP matches any address?
         for host, host_info in env.sos_dict['CONFIG']['hosts'].items():
             # find by key hostname
-            if 'address' in host_info and any(
-                    ip == host_info['address'].split('@')[-1] for ip in ips):
-                return host
+            if 'address' in host_info:
+                addr = get_config('hosts', host, 'address')
+                if any(ip == addr.split('@')[-1] for ip in ips):
+                    return host
         # now check if a key localhost is defined
         if 'localhost' in env.sos_dict['CONFIG']:
             if env.sos_dict['CONFIG']['localhost'] not in env.sos_dict[
@@ -1140,11 +1141,8 @@ class Host:
 
             # now we have definition for local and remote hosts
             cfg = env.sos_dict['CONFIG']['hosts']
-            self.config = {
-                x: y
-                for x, y in cfg[self.alias].items()
-                if x not in ('paths', 'shared')
-            }
+            self.config = get_config(
+                'hosts', self.alias, allowed_keys=('paths', 'shared'))
 
             # if local and remote hosts are the same
             if LOCAL == REMOTE or 'address' not in env.sos_dict['CONFIG'][
@@ -1168,12 +1166,13 @@ class Host:
                     common = set(cfg[LOCAL]['shared'].keys()) & set(
                         cfg[REMOTE]['shared'].keys())
                     if common:
+                        shrd = get_config('hosts', LOCAL, 'shared')
+                        rmt_shrd = get_config('hosts', REMOTE, 'shared')
                         self.config['shared'] = [
-                            normalize_value(cfg[LOCAL]['shared'][x])
-                            for x in common
+                            normalize_value(shrd[x]) for x in common
                         ]
                         self.config['path_map'] = [
-                            f'{normalize_value(cfg[LOCAL]["shared"][x])} -> {normalize_value(cfg[REMOTE]["shared"][x])}'
+                            f'{normalize_value(shrd[x])} -> {normalize_value(rmt_shrd[x])}'
                             for x in common
                         ]
                 # if paths are defined for both local and remote host, define path_map
@@ -1186,10 +1185,12 @@ class Host:
                             f'One or more local paths {", ".join(cfg[LOCAL]["paths"].keys())} cannot be mapped to remote host {REMOTE} with paths {",".join(cfg[REMOTE]["paths"].keys())}'
                         )
                     #
+                    lpaths = get_config('hosts', LOCAL, 'paths')
+                    rpaths = get_config('hosts', REMOTE, 'paths')
                     self.config['path_map'].extend([
-                        f'{normalize_value(cfg[LOCAL]["paths"][x])} -> {normalize_value(cfg[REMOTE]["paths"][x])}'
-                        for x in cfg[LOCAL]['paths'].keys()
-                        if x in cfg[REMOTE]['paths']
+                        f'{normalize_value(lpaths[x])} -> {normalize_value(rpaths[x])}'
+                        for x in lpaths.keys()
+                        if x in rpaths
                     ])
         elif LOCAL == REMOTE:
             # now we have checked local and remote are not defined, but they are the same, so

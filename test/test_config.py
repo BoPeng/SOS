@@ -170,6 +170,7 @@ def test_get_config(config_factory):
     assert get_config('A') == {'B.C': '33', 'B.C1': {'D': '34'}, 'D': '45'}
     assert get_config('E.F') == {'val': 6, 'val1': 10, 'G': '16'}
     assert get_config('E.F', val=7) == {'val': 6, 'val1': 10, 'G': '17'}
+    assert get_config('E.F', val=7, allowed_keys=['G']) == {'G': '17'}
     assert get_config(
         'E.F', val=7, val1=20) == {
             'val': 6,

@@ -43,6 +43,7 @@ def get_config(*args, **kwargs):
     The variables are
     '''
     default = kwargs.get('default', None)
+    allowed_keys = kwargs.get('allowed_keys', None)
     #
     keys = []
     custom_dict = {}
@@ -56,7 +57,9 @@ def get_config(*args, **kwargs):
         else:
             raise ValueError(f'Unacceptable parameter {arg} for get_config.')
     #
-    custom_dict.update({x: y for x, y in kwargs.items() if x != 'default'})
+    custom_dict.update({
+        x: y for x, y in kwargs.items() if x not in ('default', 'allowed_keys')
+    })
     #
     local_dict = {}
     val = env.sos_dict.get('CONFIG', {})
@@ -98,6 +101,8 @@ def get_config(*args, **kwargs):
         def interpolate_dict(item, custom_dict):
             res = {}
             for k, v in item.items():
+                if allowed_keys and k not in allowed_keys:
+                    continue
                 if isinstance(v, dict):
                     # v should be processed in place
                     res[k] = interpolate_dict(v, custom_dict)

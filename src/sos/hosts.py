@@ -1139,13 +1139,14 @@ class Host:
             if REMOTE not in env.sos_dict['CONFIG']['hosts']:
                 raise ValueError(f'Undefined remote host {REMOTE}')
 
-            # now we have definition for local and remote hosts
+            # now we have definition for local and remote hosts but we only
+            # exapnd address, which we have to know right now
             cfg = env.sos_dict['CONFIG']['hosts']
             self.config = get_config(
                 'hosts',
                 self.alias,
                 excluded_keys=('paths', 'shared'),
-                raw_keys=('task_template', 'workflow_template', 'job_template'))
+                expand_keys=('address', 'port'))
 
             # if local and remote hosts are the same
             if LOCAL == REMOTE or 'address' not in env.sos_dict['CONFIG'][

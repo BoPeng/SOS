@@ -29,7 +29,8 @@ def cfg_interpolate(text, local_dict={}):
     # handle nested interpolate ...
     # we need to avoid containing our CONFIG with all the modules created by eval
     cfg_dict = copy.deepcopy(env.sos_dict.get('CONFIG', {}))
-    exec('import os', cfg_dict)
+    if 'os.environ' in text:
+        exec('import os', cfg_dict)
     while True:
         res = interpolate(text, cfg_dict, local_dict)
         if res == text:
@@ -73,6 +74,7 @@ def get_config(*args, **kwargs):
       default: default value to return if the key is not found. Default to None.
       raw: return raw values without interpolation.
       raw_keys: keys that are not expanded
+      expand_keys: keys that are expanded
       allowed_keys: retrieve only specified keys from a dicitonary.
       exclude_keys: exclude specified keys
 
@@ -81,6 +83,7 @@ def get_config(*args, **kwargs):
     allowed_keys = kwargs.get('allowed_keys', None)
     excluded_keys = kwargs.get('excluded_keys', None)
     raw_keys = kwargs.get('raw_keys', None)
+    expand_keys = kwargs.get('expand_keys', None)
     raw = kwargs.get('raw', False)
     #
     keys = []
@@ -99,7 +102,7 @@ def get_config(*args, **kwargs):
         x: y
         for x, y in kwargs.items()
         if x not in ('default', 'allowed_keys', 'excluded_keys', 'raw_keys',
-                     'raw')
+                     'expand_keys', 'raw')
     })
     #
     local_dict = {}
@@ -150,6 +153,9 @@ def get_config(*args, **kwargs):
                 if excluded_keys and k in excluded_keys:
                     continue
                 if raw_keys and k in raw_keys:
+                    res[k] = v
+                    continue
+                if expand_keys and k not in expand_keys:
                     res[k] = v
                     continue
                 if isinstance(v, dict):

@@ -435,15 +435,15 @@ def create_public_key():
         p = pexpect.spawn(cmd, echo=False)
         while True:
             i = p.expect([
-                "Enter file in which to save the key",
-                "Enter passphrase (empty for no passphrase)",
-                "Enter same passphrase again:", 'Overwrite (y/n)', pexpect.EOF
+                "Enter file in which to save .*",
+                "Enter passphrase.*",
+                "Enter same passphrase again:.*", 'Overwrite .*', pexpect.EOF
             ])
             if i in (0, 1, 2):
-                p.sendline('\n')
-            if i == 3:
-                p.sendline('y\n')
-            if i == 3:
+                p.sendline('')
+            elif i == 3:
+                p.sendline('y')
+            elif i == 4:
                 break
     except Exception as e:
         p.close()

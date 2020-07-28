@@ -367,11 +367,12 @@ class RemoteHost(object):
         return '''rsync -a --no-g -e 'ssh ''' + self.cm_opts + self.pem_opts + ''' -p {port}' {host}:{source:e} "{dest:adep}"'''
 
     def _get_execute_cmd(self, under_workdir=True) -> str:
+        # #1396
         return self.config.get(
             'execute_cmd', 'ssh ' + self.cm_opts + self.pem_opts +
-            """ -q {host} -p {port} "bash --login -c '""" +
+            """ -q {host} -p {port} <<'HEREDOC!!'\nbash --login -c '""" +
             (' [ -d {workdir} ] || mkdir -p {workdir}; cd {workdir} && '
-             if under_workdir else ' ') + ''' {cmd}'" ''')
+             if under_workdir else ' ') + ''' {cmd} '\nHEREDOC!!\n''')
 
     def _get_query_cmd(self):
         return self.config.get(
@@ -839,7 +840,7 @@ class RemoteHost(object):
                 self._get_execute_cmd(under_workdir=under_workdir), {
                     'host': self.address,
                     'port': self.port,
-                    'cmd': cmd,
+                    'cmd': cmd.replace("'", r"'\''"),
                     'workdir': self._map_var(os.getcwd())
                 })
         except Exception as e:
@@ -861,7 +862,7 @@ class RemoteHost(object):
                 self._get_execute_cmd(under_workdir=under_workdir), {
                     'host': self.address,
                     'port': self.port,
-                    'cmd': cmd,
+                    'cmd': cmd.replace("'", r"'\''"),
                     'workdir': self._map_var(os.getcwd())
                 })
         except Exception as e:
@@ -882,7 +883,7 @@ class RemoteHost(object):
                 self._get_execute_cmd(under_workdir=False), {
                     'host': self.address,
                     'port': self.port,
-                    'cmd': cmd,
+                    'cmd': cmd.replace("'", r"'\''"),
                     'workdir': self._map_var(os.getcwd())
                 })
         except Exception as e:

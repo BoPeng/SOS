@@ -155,3 +155,63 @@ echo 'adf' >> 'result_remote.txt'
     )
 
     assert file_target("result_remote1.txt").target_exists()
+
+
+@pytest.mark.skipif(not has_docker, reason="Docker container not usable")
+def test_signature_of_remote_target(clear_now_and_after):
+    """Test remote() target"""
+    clear_now_and_after("remote_file.txt")  # , "result.txt")
+    with open("remote_file.txt", "w") as rf:
+        rf.write(
+            """line1
+        line2
+        line3
+        """
+        )
+    assert 0 == subprocess.call(
+        "sos remote push docker --files remote_file.txt -c ~/docker.yml", shell=True
+    )
+    os.remove("remote_file.txt")
+    #
+    wf = """
+        input: remote('remote_file.txt')
+        output: 'result.txt'
+
+        task:
+        sh: expand=True
+            wc -l {_input} > {_output}
+        """
+    execute_workflow(
+        wf,
+        options={
+            "config_file": "~/docker.yml",
+            "default_queue": "docker",
+        },
+    )
+    assert file_target("result.txt").target_exists()
+    assert open("result.txt").read().strip().startswith("3")
+    #
+    # now change the remote file
+    with open("remote_file.txt", "w") as rf:
+        rf.write(
+            """line1
+        line2
+        line3
+        line4
+        line5
+        """
+        )
+    assert 0 == subprocess.call(
+        "sos remote push docker --files remote_file.txt -c ~/docker.yml", shell=True
+    )
+    os.remove("remote_file.txt")
+    #
+    execute_workflow(
+        wf,
+        options={
+            "config_file": "~/docker.yml",
+            "default_queue": "docker",
+        },
+    )
+    assert file_target("result.txt").target_exists()
+    assert open("result.txt").read().strip().startswith("5")

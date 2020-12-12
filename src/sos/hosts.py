@@ -346,7 +346,7 @@ class RemoteHost(object):
         return self.check_output(
             [
                 "sos",
-                "target",
+                "preview",
                 "--signature",
                 base64.b64encode(repr(targets).encode()).decode()
             ],

@@ -490,7 +490,7 @@ class remote(BaseTarget):
             return True
 
     def target_signature(self, mode="any"):
-        if not env.config["default_queue"]:
+        if not self._host and not env.config["default_queue"]:
             return textMD5(self.target_name())
         try:
             from .hosts import Host
@@ -2118,12 +2118,14 @@ class InMemorySignature:
         self.output_files = output_files.remove_targets(type=sos_step)
         self.signature_vars = signature_vars
         self.shared_vars = shared_vars
+
         # signatures that exist before execution and might change during execution
         self.init_signature = {
             x: deepcopy(sdict[x])
             for x in sorted(signature_vars)
             if x in sdict and not callable(sdict[x]) and pickleable(sdict[x], x)
         }
+
 
     def identify_local_args(self):
         # #1372
@@ -2332,7 +2334,6 @@ class RuntimeInfo(InMemorySignature):
             signature_vars,
             shared_vars=shared_vars,
         )
-
         self.sig_id = textMD5(
             f'{self.step_md5} {self.input_files} {self.output_files} {self.dependent_files} {stable_repr(self.init_signature)}{sdict["_index"] if self.output_files.undetermined() else ""}'
         )

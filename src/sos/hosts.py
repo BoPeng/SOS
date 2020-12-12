@@ -6,6 +6,7 @@ import glob
 import multiprocessing as mp
 import os
 import shutil
+import base64
 import socket
 import stat
 import subprocess
@@ -148,7 +149,7 @@ class LocalHost(object):
     def target_exists(self, targets):
         return targets.target_exists()
 
-    def target_sigature(self, targets):
+    def target_signature(self, targets):
         return targets.target_signature()
 
     def send_to_host(self, items):
@@ -331,13 +332,25 @@ class RemoteHost(object):
         return (
             "yes"
             == self.check_output(
-                ["sos", "preview", repr(targets)], "--exists", under_workdir=True
+                [
+                    "sos",
+                    "preview",
+                    "--exists",
+                    base64.b64encode(repr(targets).encode()).decode()
+                ],
+                under_workdir=True,
             ).strip()
         )
 
-    def target_sigature(self, targets):
+    def target_signature(self, targets):
         return self.check_output(
-            ["sos", "target", repr(targets)], "--signature", under_workdir=True
+            [
+                "sos",
+                "target",
+                "--signature",
+                base64.b64encode(repr(targets).encode()).decode()
+            ],
+            under_workdir=True,
         ).strip()
 
     def _get_shared_dirs(self) -> List[Any]:
@@ -1514,6 +1527,12 @@ class Host:
 
     def map_var(self, rvars):
         return self._host_agent._map_var(rvars)
+
+    def target_exists(self, targets):
+        return self._host_agent.target_exists(targets)
+
+    def target_signature(self, targets):
+        return self._host_agent.target_signature(targets)
 
     def submit_task(self, task_id: str) -> str:
         if not self._task_engine:

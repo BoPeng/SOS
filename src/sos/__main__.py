@@ -1092,16 +1092,8 @@ def get_preview_parser(desc_only=False):
             of GENERAL, WORKER, CONTROLLER, STEP, VARIABLE, EXECUTOR, TARGET, ZERONQ, TASK,
             DAG, and ACTION, or ALL for all debug information""",
     )
-    parser.add_argument(
-        '--exists',
-        action='store_true',
-        help='Return yes if the target exists, no otherwise.'
-    )
-    parser.add_argument(
-        '--signature',
-        action='store_true',
-        help='Return signature of the targets.'
-    )
+    parser.add_argument("--exists", help=argparse.SUPPRESS)
+    parser.add_argument("--signature", help=argparse.SUPPRESS)
     parser.set_defaults(func=cmd_preview)
     return parser
 
@@ -1228,9 +1220,14 @@ def cmd_preview(args, unknown_args):
         # remote host?
         host = Host(args.host, start_engine=False)
         if args.exists:
-            rargs = [host.config.get("sos", "sos"), "preview"] + args.items + ["--exists"]
+            rargs = [host.config.get("sos", "sos"), "preview", "--exists", args.exists]
         elif args.signature:
-            rargs = [host.config.get("sos", "sos"), "preview"] + args.items + ["--signature"]
+            rargs = [
+                host.config.get("sos", "sos"),
+                "preview",
+                "--signature",
+                args.signature,
+            ]
         else:
             rargs = [host.config.get("sos", "sos"), "preview"] + args.items + ["--html"]
             if args.style:
@@ -1244,16 +1241,28 @@ def cmd_preview(args, unknown_args):
     else:
         if args.exists:
             try:
+                from base64 import b64decode
                 from .targets import sos_targets
-                msgs = ('yes' if sos_targets(args.items).target_exists() else 'no')
+
+                msgs = (
+                    "yes"
+                    if sos_targets(
+                        eval(b64decode(args.exists.encode()).decode())
+                    ).target_exists()
+                    else "no"
+                )
             except Exception as e:
-                msgs = f'error: {e}'
+                msgs = f"error: {e}"
         elif args.signature:
             try:
+                from base64 import b64decode
                 from .targets import sos_targets
-                msgs = str(sos_targets(args.items).target_signature())
+
+                msgs = str(sos_targets(
+                        eval(b64decode(args.signature.encode()).decode())
+                    ).target_signature())
             except Exception as e:
-                msgs = f'error: {e}'
+                msgs = f"error: {e}"
         else:
             from .preview import get_previewers
 
@@ -1270,7 +1279,7 @@ def cmd_preview(args, unknown_args):
         # in the case of --host, we are getting msg printed
         # otherwise we are getting msgs produced locally
         print(msgs)
-        sys.exit(1 if msgs.startswith('error:') else 0)
+        sys.exit(1 if msgs.startswith("error:") else 0)
 
     if args.html:
         print(msgs)

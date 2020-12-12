@@ -6,6 +6,7 @@
 import os
 import subprocess
 import unittest
+import pytest
 
 from sos.hosts import Host
 from sos.targets import file_target
@@ -45,58 +46,6 @@ class TestRemote(unittest.TestCase):
     def tearDown(self):
         for f in self.temp_files:
             file_target(f).unlink()
-
-    @unittest.skipIf(not has_docker, "Docker container not usable")
-    def test_remote_execute(self):
-        if os.path.isfile('result_remote.txt'):
-            os.remove('result_remote.txt')
-        if os.path.isfile('local.txt'):
-            os.remove('local.txt')
-        with open('local.txt', 'w') as w:
-            w.write('something')
-        self.assertEqual(
-            subprocess.call(
-                'sos remote push docker --files local.txt -c ~/docker.yml',
-                shell=True), 0)
-        with open('test_remote.sos', 'w') as tr:
-            tr.write('''
-[10]
-input: 'local.txt'
-output: 'result_remote.txt'
-task:
-
-run:
-  cp local.txt result_remote.txt
-  echo 'adf' >> 'result_remote.txt'
-
-''')
-        self.assertEqual(
-            subprocess.call(
-                'sos run test_remote.sos -c ~/docker.yml -r docker -s force -q localhost',
-                shell=True), 0)
-        self.assertFalse(file_target('result_remote.txt').target_exists())
-        #self.assertEqual(subprocess.call('sos preview result_remote.txt -c ~/docker.yml -r docker', shell=True), 0)
-        #self.assertNotEqual(subprocess.call('sos preview result_remote.txt', shell=True), 0)
-        self.assertEqual(
-            subprocess.call(
-                'sos remote pull docker --files result_remote.txt -c ~/docker.yml',
-                shell=True), 0)
-        self.assertTrue(file_target('result_remote.txt').target_exists())
-        #self.assertEqual(subprocess.call('sos preview result_remote.txt', shell=True), 0)
-        with open('result_remote.txt') as w:
-            content = w.read()
-            self.assertTrue('something' in content, 'Got {}'.format(content))
-            self.assertTrue('adf' in content, 'Got {}'.format(content))
-        # test sos remote run
-        self.assertEqual(
-            subprocess.call(
-                'sos remote run docker -c  ~/docker.yml --cmd cp result_remote.txt result_remote1.txt ',
-                shell=True), 0)
-        self.assertEqual(
-            subprocess.call(
-                'sos remote pull docker --files result_remote1.txt -c ~/docker.yml',
-                shell=True), 0)
-        self.assertTrue(file_target('result_remote1.txt').target_exists())
 
 #     @unittest.skipIf(sys.platform == 'win32' or not has_docker,
 #                      'No symbloc link problem under win32 or no docker')
@@ -250,5 +199,58 @@ bash: expand=True
                 'worker_proces': ['1', 'localhost:2'],
             }).run()
 
-if __name__ == '__main__':
-    unittest.main()
+
+
+@pytest.mark.skipif(not has_docker, reason="Docker container not usable")
+def test_remote_execute(clear_now_and_after):
+    clear_now_and_after('result_remote.txt', 'local.txt')
+
+    with open('local.txt', 'w') as w:
+        w.write('something')
+
+    assert 0 == subprocess.call(
+            'sos remote push docker --files local.txt -c ~/docker.yml',
+            shell=True)
+
+
+    with open('test_remote.sos', 'w') as tr:
+        tr.write('''
+[10]
+input: 'local.txt'
+output: 'result_remote.txt'
+task:
+
+run:
+cp local.txt result_remote.txt
+echo 'adf' >> 'result_remote.txt'
+
+''')
+    assert 0 == subprocess.call(
+            'sos run test_remote.sos -c ~/docker.yml -r docker -s force -q localhost',
+            shell=True)
+
+    assert not file_target('result_remote.txt').target_exists()
+
+    #self.assertEqual(subprocess.call('sos preview result_remote.txt -c ~/docker.yml -r docker', shell=True), 0)
+    #self.assertNotEqual(subprocess.call('sos preview result_remote.txt', shell=True), 0)
+    assert 0 == subprocess.call(
+            'sos remote pull docker --files result_remote.txt -c ~/docker.yml',
+            shell=True)
+
+    assert file_target('result_remote.txt').target_exists()
+
+    #self.assertEqual(subprocess.call('sos preview result_remote.txt', shell=True), 0)
+    with open('result_remote.txt') as w:
+        content = w.read()
+        assert 'something' in content
+        assert 'adf' in content
+
+    # test sos remote run
+    assert 0 == subprocess.call(
+            'sos remote run docker -c  ~/docker.yml --cmd cp result_remote.txt result_remote1.txt ',
+            shell=True)
+    assert 0 == subprocess.call(
+            'sos remote pull docker --files result_remote1.txt -c ~/docker.yml',
+            shell=True)
+
+    assert file_target('result_remote1.txt').target_exists()

@@ -1245,30 +1245,31 @@ def cmd_preview(args, unknown_args):
         if args.exists:
             try:
                 from .targets import sos_targets
-                print('yes' if sos_targets(args.items).target_exists() else 'no')
-                sys.exit(0)
+                msgs = ('yes' if sos_targets(args.items).target_exists() else 'no')
             except Exception as e:
-                print(f'error: {e}')
-                sys.exit(1)
-        if args.signature:
+                msgs = f'error: {e}'
+        elif args.signature:
             try:
                 from .targets import sos_targets
-                print(sos_targets(args.items).target_signature())
-                sys.exit(0)
+                msgs = str(sos_targets(args.items).target_signature())
             except Exception as e:
-                print(f'error: {e}')
-                sys.exit(1)
-        from .preview import get_previewers
+                msgs = f'error: {e}'
+        else:
+            from .preview import get_previewers
 
-        previewers = get_previewers()
-        msgs = []
-        style = (
-            {"style": args.style, "options": unknown_args}
-            if args.style or unknown_args
-            else None
-        )
-        for filename in args.items:
-            msgs.extend(preview_file(previewers, filename, style))
+            previewers = get_previewers()
+            msgs = []
+            style = (
+                {"style": args.style, "options": unknown_args}
+                if args.style or unknown_args
+                else None
+            )
+            for filename in args.items:
+                msgs.extend(preview_file(previewers, filename, style))
+    if args.exists or args.signature:
+        print(repr(msgs))
+        sys.exit(1 if msgs.startswith('error:') else 0)
+
     if args.html:
         print(msgs)
     else:

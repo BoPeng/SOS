@@ -1238,7 +1238,7 @@ def cmd_preview(args, unknown_args):
 
         if "GENERAL" in env.config["SOS_DEBUG"] or "ALL" in env.config["SOS_DEBUG"]:
             env.log_to_file("GENERAL", 'Running "{}"'.format(" ".join(rargs)))
-        msgs = host._host_agent.check_output(rargs, under_workdir=True)
+        msgs = host._host_agent.check_output(rargs, under_workdir=True).strip()
         if not args.exists and not args.signature:
             msgs = eval(msgs)
     else:
@@ -1267,7 +1267,9 @@ def cmd_preview(args, unknown_args):
             for filename in args.items:
                 msgs.extend(preview_file(previewers, filename, style))
     if args.exists or args.signature:
-        print(repr(msgs))
+        # in the case of --host, we are getting msg printed
+        # otherwise we are getting msgs produced locally
+        print(msgs)
         sys.exit(1 if msgs.startswith('error:') else 0)
 
     if args.html:

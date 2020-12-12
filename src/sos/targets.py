@@ -481,11 +481,11 @@ class remote(BaseTarget):
         try:
             from .hosts import Host
 
-            h = Host(self._host if self._host else env.cofig["default_queue"])
+            h = Host(self._host if self._host else env.config["default_queue"])
             return h.target_exists(sos_targets(self._target))
         except Exception as e:
             env.logger.debug(
-                f'Failed to check existence of {self._target} on {self._host if self._host else env.cofig["default_queue"]}: {e}'
+                f'Failed to check existence of {self._target} on {self._host if self._host else env.config["default_queue"]}: {e}'
             )
             return True
 
@@ -495,11 +495,11 @@ class remote(BaseTarget):
         try:
             from .hosts import Host
 
-            h = Host(self._host if self._host else env.cofig["default_queue"])
+            h = Host(self._host if self._host else env.config["default_queue"])
             return h.target_signature(sos_targets(self._target))
         except Exception as e:
             env.logger.debug(
-                f'Failed to check existence of {self._target} on {self._host if self._host else env.cofig["default_queue"]}: {e}'
+                f'Failed to check existence of {self._target} on {self._host if self._host else env.config["default_queue"]}: {e}'
             )
             return textMD5(self.target_name())
 

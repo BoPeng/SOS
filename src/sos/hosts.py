@@ -343,6 +343,14 @@ class RemoteHost(object):
         )
 
     def target_signature(self, targets):
+        print(f'Running command')
+        cmd = ' '.join([
+                "sos",
+                "preview",
+                "--signature",
+                base64.b64encode(repr(targets).encode()).decode()
+            ])
+        print(cmd)
         return self.check_output(
             [
                 "sos",

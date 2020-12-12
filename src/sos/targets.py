@@ -2283,6 +2283,7 @@ class InMemorySignature:
                         freal = eval(f, {target_type: target_class})
                     else:
                         freal = file_target(f)
+                    print(f'CHECKING {freal} with signature {freal.target_signature()} with {m}')
                     if not freal.validate(m):
                         return f"Target {f} does not exist or does not match saved signature {m}"
                     res[cur_type].append(

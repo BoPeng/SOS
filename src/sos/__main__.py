@@ -1239,28 +1239,21 @@ def cmd_preview(args, unknown_args):
         if not args.exists and not args.signature:
             msgs = eval(msgs)
     else:
-        if args.exists:
-            try:
-                from base64 import b64decode
-                from .targets import sos_targets
+        if args.exists or args.signature:
+            from base64 import b64decode
+            from .targets import sos_targets, file_target
 
-                msgs = (
-                    "yes"
-                    if sos_targets(
-                        eval(b64decode(args.exists.encode()).decode())
-                    ).target_exists()
-                    else "no"
-                )
-            except Exception as e:
-                msgs = f"error: {e}"
-        elif args.signature:
-            try:
-                from base64 import b64decode
-                from .targets import sos_targets
+            items = b64decode(
+                (args.exists if args.exists else args.signature).encode()
+            ).decode()
 
-                msgs = str(sos_targets(
-                        eval(b64decode(args.signature.encode()).decode())
-                    ).target_signature())
+            try:
+                items = eval(items)
+
+                if args.exists:
+                    msgs = "yes" if sos_targets(items).target_exists() else "no"
+                else:
+                    msgs = str(sos_targets(items).target_signature())
             except Exception as e:
                 msgs = f"error: {e}"
         else:

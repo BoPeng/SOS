@@ -1092,6 +1092,16 @@ def get_preview_parser(desc_only=False):
             of GENERAL, WORKER, CONTROLLER, STEP, VARIABLE, EXECUTOR, TARGET, ZERONQ, TASK,
             DAG, and ACTION, or ALL for all debug information""",
     )
+    parser.add_argument(
+        '--exists',
+        action='store_true',
+        help='Return yes if the target exists, no otherwise.'
+    )
+    parser.add_argument(
+        '--signature',
+        action='store_true',
+        help='Return signature of the targets.'
+    )
     parser.set_defaults(func=cmd_preview)
     return parser
 
@@ -1213,16 +1223,41 @@ def cmd_preview(args, unknown_args):
 
     load_config_files(args.config)
     env.verbosity = args.verbosity
+
     if args.host:
         # remote host?
         host = Host(args.host, start_engine=False)
-        rargs = [host.config.get("sos", "sos"), "preview"] + args.items + ["--html"]
-        if args.style:
-            rargs += ["-s", args.style] + unknown_args
+        if args.exists:
+            rargs = [host.config.get("sos", "sos"), "preview"] + args.items + ["--exists"]
+        elif args.signature:
+            rargs = [host.config.get("sos", "sos"), "preview"] + args.items + ["--signature"]
+        else:
+            rargs = [host.config.get("sos", "sos"), "preview"] + args.items + ["--html"]
+            if args.style:
+                rargs += ["-s", args.style] + unknown_args
+
         if "GENERAL" in env.config["SOS_DEBUG"] or "ALL" in env.config["SOS_DEBUG"]:
             env.log_to_file("GENERAL", 'Running "{}"'.format(" ".join(rargs)))
-        msgs = eval(host._host_agent.check_output(rargs, under_workdir=True))
+        msgs = host._host_agent.check_output(rargs, under_workdir=True)
+        if not args.exists and not args.signature:
+            msgs = eval(msgs)
     else:
+        if args.exists:
+            try:
+                from .targets import sos_targets
+                print('yes' if sos_targets(args.items).target_exists() else 'no')
+                sys.exit(0)
+            except Exception as e:
+                print(f'error: {e}')
+                sys.exit(1)
+        if args.signature:
+            try:
+                from .targets import sos_targets
+                print(sos_targets(args.items).target_signature())
+                sys.exit(0)
+            except Exception as e:
+                print(f'error: {e}')
+                sys.exit(1)
         from .preview import get_previewers
 
         previewers = get_previewers()

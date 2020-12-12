@@ -145,6 +145,12 @@ class LocalHost(object):
     def test_connection(self):
         return "OK"
 
+    def target_exists(self, targets):
+        return targets.target_exists()
+
+    def target_sigature(self, targets):
+        return targets.target_signature()
+
     def send_to_host(self, items):
         return {x: x for x in items}
 
@@ -320,6 +326,19 @@ class RemoteHost(object):
             test_res = self.test_connection()
             if test_res != "OK":
                 raise RuntimeError(f"Failed to connect to {self.alias}: {test_res}")
+
+    def target_exists(self, targets):
+        return (
+            "yes"
+            == self.check_output(
+                ["sos", "preview", repr(targets)], "--exists", under_workdir=True
+            ).strip()
+        )
+
+    def target_sigature(self, targets):
+        return self.check_output(
+            ["sos", "target", repr(targets)], "--signature", under_workdir=True
+        ).strip()
 
     def _get_shared_dirs(self) -> List[Any]:
         value = self.config.get("shared", [])

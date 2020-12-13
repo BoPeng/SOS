@@ -1504,7 +1504,10 @@ class Host:
             self._engine_type = "process"
         else:
             self._engine_type = self.config["queue_type"].strip()
-        if self.alias not in self.host_instances:
+        # if there is no engine, or if the engine was stopped
+        if self.alias not in self.host_instances or (
+            hasattr(self.host_instances[self.alias], '_task_engine') and
+            self.host_instances[self.alias]._task_engine._is_stopped):
             if self.config["address"] == "localhost":
                 self.host_instances[self.alias] = LocalHost(
                     self.config, test_connection=test_connection
@@ -1535,21 +1538,8 @@ class Host:
             and self._task_engine is not None
             and not self._task_engine.is_alive()
         ):
-            try:
-                self._task_engine.start()
-            except Exception as e:
-                # if the engine was started before, restart another engine
+            self._task_engine.start()
 
-                task_engine, workflow_engine = self._get_task_and_workflow_engine()
-                self.host_instances[self.alias]._task_engine = task_engine
-                self.host_instances[self.alias]._workflow_engine = workflow_engine
-                self._host_agent = self.host_instances[self.alias]
-                if hasattr(self._host_agent, "_task_engine"):
-                    self._task_engine = self._host_agent._task_engine
-                if hasattr(self._host_agent, "_workflow_engine"):
-                    self._workflow_engine = self._host_agent._workflow_engine
-
-                self._task_engine.start()
 
     # public interface
     #

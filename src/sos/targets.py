@@ -700,7 +700,7 @@ class path(type(Path())):
         if not self._parts or self._parts[0][:1] != "#":
             return self
         try:
-            if '_runtime' in env.sos_dict and '_paths' in env.sos_dict['_runtime']:
+            if '_runtime' in env.sos_dict and 'paths' in env.sos_dict['_runtime']:
                 cfg = env.sos_dict['_runtime']
             else:
                 cfg = get_config(

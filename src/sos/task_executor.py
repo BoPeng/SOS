@@ -153,7 +153,7 @@ class BaseTaskExecutor(object):
         # this is task specific runtime information, used to update global _runtime
         params.sos_dict["_runtime"].update(runtime["_runtime"])
         # this is subtask dictionary
-        if task_id in runtime:a
+        if task_id in runtime:
             params.sos_dict.update(runtime[task_id])
 
         if (

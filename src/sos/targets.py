@@ -700,6 +700,8 @@ class path(type(Path())):
         if not self._parts or self._parts[0][:1] != "#":
             return self
         try:
+            # this is the case for task execution where paths is directly specified in
+            # _runtime.
             if '_runtime' in env.sos_dict and 'paths' in env.sos_dict['_runtime']:
                 cfg = env.sos_dict['_runtime']
             else:

@@ -1531,7 +1531,10 @@ class Host:
             and self._task_engine is not None
             and not self._task_engine.is_alive()
         ):
-            self._task_engine.start()
+            try:
+                self._task_engine.start()
+            except Exception as e:
+                env.logger.debug(f'Failed to start task engine.')
 
     # public interface
     #

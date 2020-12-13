@@ -11,6 +11,7 @@ import socket
 import stat
 import subprocess
 import sys
+import time
 import pexpect
 from collections.abc import Sequence
 
@@ -1529,12 +1530,16 @@ class Host:
         if (
             start_engine
             and self._task_engine is not None
-            and not self._task_engine.is_alive()
         ):
-            try:
-                self._task_engine.start()
-            except Exception as e:
-                env.logger.debug(f'Failed to start task engine.')
+            attempt = 0
+            while not self._task_engine.is_alive():
+                try:
+                    self._task_engine.start()
+                except Exception as e:
+                    attempt += 1
+                    time.sleep(1)
+                if attempt == 5:
+                    raise SystemError('Failed to start task engine')
 
     # public interface
     #

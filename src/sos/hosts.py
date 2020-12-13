@@ -1514,9 +1514,9 @@ class Host:
             self.host_instances[self.alias]._task_engine = task_engine
             self.host_instances[self.alias]._workflow_engine = workflow_engine
 
-            # the task engine is a thread and will run continously
-            if start_engine and task_engine is not None:
-                task_engine.start()
+            # # the task engine is a thread and will run continously
+            # if start_engine and task_engine is not None:
+            #     task_engine.start()
 
         self._host_agent = self.host_instances[self.alias]
         # for convenience

@@ -924,6 +924,15 @@ class RemoteHost(object):
         # map variables
         runtime["_runtime"]["workdir"] = task_vars["_runtime"]["workdir"] if "workdir" in task_vars["_runtime"] else path.cwd().shrink()
 
+        if runtime["_runtime"]["workdir"].startswith('#'):
+            try:
+                path(runtime["_runtime"]["workdir"], host=self.alias)
+            except Exception as e:
+                raise ValueError(f'Working directory {runtime["_runtime"]["workdir"]} does not exist on remote host {self.alias}')
+        elif path(runtime["_runtime"]["workdir"]).is_absolute():
+            env.logger.warning(f'Using absolute path as workdir is not portable.')
+
+        env.log_to_file('TASK', f'Set workdir to {runtime["_runtime"]["workdir"]}')
         mapped_vars = {"_input", "_output", "_depends", "input", "output", "depends"}
 
         for var in mapped_vars:
@@ -978,7 +987,7 @@ class RemoteHost(object):
                     if key == "max_walltime"
                     else self.config[key]
                 )
-
+        runtime['_paths'] = get_config(['hosts', self.alias, 'paths'])
 
         # only update task file if there are runtime information
         if len(runtime) > 1 or runtime["_runtime"] or runtime != old_runtime:

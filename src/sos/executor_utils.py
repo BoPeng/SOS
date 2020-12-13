@@ -311,7 +311,7 @@ def create_task(global_def, global_vars, task_stmt, task_params):
     env.sos_dict["_runtime"]["sig_mode"] = env.config.get("sig_mode", "default")
     env.sos_dict["_runtime"]["run_mode"] = env.config.get("run_mode", "run")
     if "workdir" not in env.sos_dict["_runtime"]:
-        env.sos_dict["_runtime"]["workdir"] = path.cwd()
+        env.sos_dict["_runtime"]["workdir"] = path.cwd().shrink()
     elif "TASK" in env.config["SOS_DEBUG"] or "ALL" in env.config["SOS_DEBUG"]:
         env.log_to_file(
             "TASK", f'Using specified workdir {env.sos_dict["_runtime"]["workdir"]}'

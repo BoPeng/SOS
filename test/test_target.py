@@ -745,6 +745,19 @@ def test_named_path():
             assert path('#home') == os.environ['HOME']
             assert 'home' in path.names()
             assert 'home' in path.names('docker')
-    """,
+        """,
         options={"config_file": os.path.join(os.path.expanduser("~"), "docker.yml")},
     )
+
+
+def test_shrink_path():
+    execute_workflow(
+        """
+        [10: shared="a"]
+        a = path('/root/xxx/whatever').shrink(host='docker')
+        """,
+        options={
+            "config_file": os.path.join(os.path.expanduser("~"), "docker.yml"),
+        }
+    )
+    assert env.sos_dict['a'] == '#home/xxx/whatever'

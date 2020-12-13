@@ -626,6 +626,17 @@ class path(type(Path())):
             .expandnamed(host=kwargs.get("host", None))
         )
 
+    def is_relative_to(self, *other):
+        """Return True if the path is relative to another path or False.
+
+        Copied from Python3.9
+        """
+        try:
+            self.relative_to(*other)
+            return True
+        except ValueError:
+            return False
+
     @staticmethod
     def names(host=None):
         if host is None:
@@ -657,6 +668,33 @@ class path(type(Path())):
                 self._parts = expanded._parts
                 self._drv = expanded._drv
                 self._root = expanded._root
+
+    def shrink(self, host=None):
+        try:
+            if not self.is_absolute():
+                raise ValueError(f'{self} is not an absolute path.')
+            host = env.sos_dict.get("__host__", "localhost") if host is None else host
+            cfg = get_config(
+                "hosts",
+                host,
+                expected_type=dict,
+            )
+            if 'paths' not in cfg:
+                raise ValueError('No path is defined in host defintion.')
+            relative_paths = [(name, path) for name, path in cfg['paths'].items() if self.is_relative_to(path)]
+            if not relative_paths:
+                raise ValueError(f'{self} is not relative to any of the pre-defined paths for host {host}.')
+            if len(relative_paths) > 1:
+                env.logger.debug(f'{self} is relative to more than one pre-defined paths for host {host}')
+                max_length = max(len(str(x[1])) for x in relative_paths)
+                relative_paths = [x for x in relative_paths if len(str(x[1])) == max_length]
+            # return the anchored
+            related = str(self)[len(relative_paths[0][1]):]
+            if related and not related.startswith('/'):
+                related = '/' + related
+            return '#' + relative_paths[0][0] + related
+        except Exception as e:
+            raise ValueError(f'Failed to relate {self} with any of the named paths: {e}')
 
     def expandnamed(self, host=None):
         if not self._parts or self._parts[0][:1] != "#":

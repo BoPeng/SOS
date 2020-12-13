@@ -152,12 +152,8 @@ class BaseTaskExecutor(object):
         """
         # this is task specific runtime information, used to update global _runtime
         params.sos_dict["_runtime"].update(runtime["_runtime"])
-        # set paths so that workdir etc could be expanded.
-        if '_paths' in runtime:
-            env.sos_dict.set("CONFIG",
-                dict(hosts = dict(localhost=dict(paths=runtime['_paths']))))
         # this is subtask dictionary
-        if task_id in runtime:
+        if task_id in runtime:a
             params.sos_dict.update(runtime[task_id])
 
         if (

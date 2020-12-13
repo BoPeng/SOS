@@ -700,11 +700,14 @@ class path(type(Path())):
         if not self._parts or self._parts[0][:1] != "#":
             return self
         try:
-            cfg = get_config(
-                "hosts",
-                env.sos_dict.get("__host__", "localhost") if host is None else host,
-                expected_type=dict,
-            )
+            if '_runtime' in env.sos_dict and '_paths' in env.sos_dict['_runtime']:
+                cfg = env.sos_dict['_runtime']
+            else:
+                cfg = get_config(
+                    "hosts",
+                    env.sos_dict.get("__host__", "localhost") if host is None else host,
+                    expected_type=dict,
+                )
             try:
                 return self._from_parts(
                     [cfg["paths"][self._parts[0][1:]]] + self._parts[1:]

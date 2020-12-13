@@ -1089,43 +1089,35 @@ with open(_input, 'r') as inf, open(_output, 'w') as outf:
         self.assertFalse(os.path.isfile("vars.sh"))
         self.assertTrue(os.path.isfile("vars1.sh"))
 
-    @unittest.skipIf(not has_docker, "Docker container not usable")
-    def test_delayed_interpolation(self):
-        """Test delayed interpolation with expression involving remote objects"""
-        # purge all previous tasks
-        if file_target("test.py").exists():
-            file_target("test.py").unlink()
-        if file_target("test.py.bak").exists():
-            file_target("test.py.bak").unlink()
-        script = SoS_Script(
-            """
-[10]
-output: remote('test.py')
-task:
-run:
-    touch test.py
+@pytest.mark.skipif(not has_docker, reason="Docker container not usable")
+def test_delayed_interpolation(clear_now_and_after):
+    """Test delayed interpolation with expression involving remote objects"""
+    # purge all previous tasks
+    clear_now_and_after('test.py', 'test.py.bak')
+    execute_workflow(
+        """
+        [10]
+        output: remote('test.py')
+        task:
+        run:
+            touch test.py
 
-[20]
-output: remote(f"{_input:R}.bak")
-task:
-run: expand=True
-    cp {_input} {_output}
-"""
-        )
-        wf = script.workflow()
-        Base_Executor(
-            wf,
-            config={
-                "config_file": "~/docker.yml",
-                # do not wait for jobs
-                "wait_for_task": True,
-                "default_queue": "docker",
-                "sig_mode": "force",
-            },
-        ).run()
-        # this file is remote only
-        self.assertFalse(os.path.isfile("test.py"))
-        self.assertFalse(os.path.isfile("test.py.bak"))
+        [20]
+        output: remote(f"{_input:R}.bak")
+        task:
+        run: expand=True
+            cp {_input} {_output}
+        """, options={
+            "config_file": "~/docker.yml",
+            # do not wait for jobs
+            "wait_for_task": True,
+            "default_queue": "docker",
+            "sig_mode": "force",
+        },
+    )
+    # this file is remote only
+    assert not os.path.isfile("test.py")
+    assert not os.path.isfile("test.py.bak")
 
 
 @pytest.mark.skipif(not has_docker, reason="Docker container not usable")

@@ -361,6 +361,7 @@ class RemoteHost(object):
             msg = f"error: {e}"
         if msg.startswith("error:"):
             env.logger.debug(msg)
+            from .targets import textMD5
             return textMD5(self.target_name())
         else:
             return msg
@@ -921,12 +922,7 @@ class RemoteHost(object):
                 )
 
         # map variables
-        if "workdir" in task_vars["_runtime"]:
-            runtime["_runtime"]["workdir"] = self._map_var(
-                task_vars["_runtime"]["workdir"]
-            )
-        else:
-            runtime["_runtime"]["workdir"] = self._map_var(os.getcwd())
+        runtime["_runtime"]["workdir"] = task_vars["_runtime"]["workdir"] if "workdir" in task_vars["_runtime"] else path.cwd().shrink()
 
         mapped_vars = {"_input", "_output", "_depends", "input", "output", "depends"}
 
@@ -982,6 +978,7 @@ class RemoteHost(object):
                     if key == "max_walltime"
                     else self.config[key]
                 )
+
 
         # only update task file if there are runtime information
         if len(runtime) > 1 or runtime["_runtime"] or runtime != old_runtime:

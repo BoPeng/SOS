@@ -362,7 +362,7 @@ class RemoteHost(object):
         if msg.startswith("error:"):
             env.logger.debug(msg)
             from .targets import textMD5
-            return textMD5(self.target_name())
+            return textMD5(targets.target_name())
         else:
             return msg
 

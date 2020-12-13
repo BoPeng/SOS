@@ -155,7 +155,7 @@ class BaseTaskExecutor(object):
         # set paths so that workdir etc could be expanded.
         if '_paths' in runtime:
             env.sos_dict.set("CONFIG",
-                dict(hosts = dict(__host__=dict(paths=runtime['_paths']))))
+                dict(hosts = dict(localhost=dict(paths=runtime['_paths']))))
         # this is subtask dictionary
         if task_id in runtime:
             params.sos_dict.update(runtime[task_id])

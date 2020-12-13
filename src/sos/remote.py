@@ -616,7 +616,7 @@ def push_to_hosts(cfg, hosts, items, verbosity):
             #
             sent = h.send_to_host(items)
             #
-            print(
+            env.logger.info(
                 "{} item{} sent:\n{}".format(
                     len(sent),
                     " is" if len(sent) <= 1 else "s are",

@@ -158,8 +158,9 @@ echo 'adf' >> 'result_remote.txt'
 
 
 @pytest.mark.skipif(not has_docker, reason="Docker container not usable")
-def test_signature_of_remote_target(clear_now_and_after):
+def test_signature_of_remote_target(clear_now_and_after, monkeypatch):
     """Test remote() target"""
+    monkeypatch.setenv('SOS_DEBUG', "TASK,-")
     clear_now_and_after("remote_file.txt")  # , "result.txt")
     with open("remote_file.txt", "w") as rf:
         rf.write(

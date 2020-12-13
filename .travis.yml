@@ -61,7 +61,7 @@ before_script:
     - cd test
     - sh build_test_docker.sh
 script:
-    - pytest test_remote.py::test_signature_of_remote_target -v --cov sos --cov-config ../.coveragerc --cov-report=xml
+    - pytest -v --cov sos --cov-config ../.coveragerc --cov-report=xml
 
 after_success:
     - coverage combine;

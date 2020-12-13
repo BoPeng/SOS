@@ -1453,6 +1453,52 @@ class Host:
         if "max_mem" in self.config:
             self.config["max_mem"] = expand_size(self.config["max_mem"])
 
+    def _get_task_and_workflow_engine(self):
+        if self._engine_type == "process":
+            task_engine = BackgroundProcess_TaskEngine(
+                self.host_instances[self.alias]
+            )
+            workflow_engine = BackgroundProcess_WorkflowEngine(
+                self.host_instances[self.alias]
+            )
+        else:
+            task_engine = None
+            workflow_engine = None
+
+            for entrypoint in pkg_resources.iter_entry_points(
+                group="sos_taskengines"
+            ):
+                try:
+                    if entrypoint.name == self._engine_type:
+                        task_engine = entrypoint.load()(
+                            self.host_instances[self.alias]
+                        )
+                        break
+                except Exception as e:
+                    env.logger.debug(
+                        f"Failed to load task engine {self._engine_type}: {e}"
+                    )
+
+            for entrypoint in pkg_resources.iter_entry_points(
+                group="sos_workflowengines"
+            ):
+                try:
+                    if entrypoint.name == self._engine_type:
+                        workflow_engine = entrypoint.load()(
+                            self.host_instances[self.alias]
+                        )
+                        break
+                except Exception as e:
+                    env.logger.debug(
+                        f"Failed to load workflow engine {self._engine_type}: {e}"
+                    )
+
+            if task_engine is None and workflow_engine is None:
+                raise ValueError(
+                    f'Failed to load task engine of type "{self._engine_type}". Please check the engine name or install relevant module.'
+                )
+        return task_engine, workflow_engine
+
     def _get_host_agent(self, start_engine: bool, test_connection: bool) -> None:
         if "queue_type" not in self.config:
             self._engine_type = "process"
@@ -1468,50 +1514,7 @@ class Host:
                     self.config, test_connection=test_connection
                 )
 
-            if self._engine_type == "process":
-                task_engine = BackgroundProcess_TaskEngine(
-                    self.host_instances[self.alias]
-                )
-                workflow_engine = BackgroundProcess_WorkflowEngine(
-                    self.host_instances[self.alias]
-                )
-            else:
-                task_engine = None
-                workflow_engine = None
-
-                for entrypoint in pkg_resources.iter_entry_points(
-                    group="sos_taskengines"
-                ):
-                    try:
-                        if entrypoint.name == self._engine_type:
-                            task_engine = entrypoint.load()(
-                                self.host_instances[self.alias]
-                            )
-                            break
-                    except Exception as e:
-                        env.logger.debug(
-                            f"Failed to load task engine {self._engine_type}: {e}"
-                        )
-
-                for entrypoint in pkg_resources.iter_entry_points(
-                    group="sos_workflowengines"
-                ):
-                    try:
-                        if entrypoint.name == self._engine_type:
-                            workflow_engine = entrypoint.load()(
-                                self.host_instances[self.alias]
-                            )
-                            break
-                    except Exception as e:
-                        env.logger.debug(
-                            f"Failed to load workflow engine {self._engine_type}: {e}"
-                        )
-
-                if task_engine is None and workflow_engine is None:
-                    raise ValueError(
-                        f'Failed to load task engine of type "{self._engine_type}". Please check the engine name or install relevant module.'
-                    )
-
+            task_engine, workflow_engine = self._get_task_and_workflow_engine()
             self.host_instances[self.alias]._task_engine = task_engine
             self.host_instances[self.alias]._workflow_engine = workflow_engine
 
@@ -1530,16 +1533,23 @@ class Host:
         if (
             start_engine
             and self._task_engine is not None
+            and not self._task_engine.is_alive()
         ):
-            attempt = 0
-            while not self._task_engine.is_alive():
-                try:
-                    self._task_engine.start()
-                except Exception as e:
-                    attempt += 1
-                    time.sleep(1)
-                if attempt == 5:
-                    raise SystemError('Failed to start task engine')
+            try:
+                self._task_engine.start()
+            except Exception as e:
+                # if the engine was started before, restart another engine
+
+                task_engine, workflow_engine = self._get_task_and_workflow_engine()
+                self.host_instances[self.alias]._task_engine = task_engine
+                self.host_instances[self.alias]._workflow_engine = workflow_engine
+                self._host_agent = self.host_instances[self.alias]
+                if hasattr(self._host_agent, "_task_engine"):
+                    self._task_engine = self._host_agent._task_engine
+                if hasattr(self._host_agent, "_workflow_engine"):
+                    self._workflow_engine = self._host_agent._workflow_engine
+
+                self._task_engine.start()
 
     # public interface
     #

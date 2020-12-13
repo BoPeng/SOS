@@ -153,7 +153,6 @@ class BaseTaskExecutor(object):
         # this is task specific runtime information, used to update global _runtime
         params.sos_dict["_runtime"].update(runtime["_runtime"])
         # set paths so that workdir etc could be expanded.
-        raise ValueError(f'paths {runtime}')
         if '_paths' in runtime:
             env.sos_dict.set("CONFIG",
                 dict(hosts = dict(__host__=dict(paths=runtime['_paths']))))

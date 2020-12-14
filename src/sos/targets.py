@@ -617,15 +617,6 @@ class path(type(Path())):
         "R": lambda x: x,
     }
 
-    def __new__(cls, *args, **kwargs):
-        if cls is Path:
-            cls = WindowsPath if os.name == "nt" else PosixPath
-        return (
-            cls._from_parts(args)
-            .expanduser()
-            .expandnamed(host=kwargs.get("host", None))
-        )
-
     def is_relative_to(self, *other):
         """Return True if the path is relative to another path or False.
 
@@ -654,20 +645,9 @@ class path(type(Path())):
         else:
             return list(get_config(["hosts", host, "paths"]).keys())
 
-    def _init(self, template=None):
-        super(path, self)._init(template)
-
-        if not (self._drv or self._root) and self._parts:
-            if self._parts[0][:1] == "~":
-                expanded = self.expanduser()
-                self._parts = expanded._parts
-                self._drv = expanded._drv
-                self._root = expanded._root
-            elif self._parts[0][:1] == "#":
-                expanded = self.expandnamed()
-                self._parts = expanded._parts
-                self._drv = expanded._drv
-                self._root = expanded._root
+    # the PathLike interface
+    def __fspath__(self):
+        return str(self.expandname().expanduser())
 
     def shrink(self, host=None):
         try:
@@ -696,7 +676,7 @@ class path(type(Path())):
         except Exception as e:
             raise ValueError(f'Failed to relate {self} with any of the named paths: {e}')
 
-    def expandnamed(self, host=None):
+    def expandname(self, host=None):
         if not self._parts or self._parts[0][:1] != "#":
             return self
         try:
@@ -704,6 +684,7 @@ class path(type(Path())):
             # _runtime.
             if '_runtime' in env.sos_dict and 'paths' in env.sos_dict['_runtime']:
                 cfg = env.sos_dict['_runtime']
+            # this is the case for the main program, or when the task is executed
             else:
                 cfg = get_config(
                     "hosts",
@@ -712,7 +693,7 @@ class path(type(Path())):
                 )
             try:
                 return self._from_parts(
-                    [cfg["paths"][self._parts[0][1:]]] + self._parts[1:]
+                    [self._name[1]] + self._parts[1:]
                 )
             except KeyError:
                 return self._from_parts(
@@ -765,9 +746,6 @@ class path(type(Path())):
 
     def fullname(self):
         return os.path.abspath(str(self))
-
-    def __fspath__(self):
-        return self.fullname()
 
     def __eq__(self, other):
         return os.path.abspath(self.fullname()) == os.path.abspath(
@@ -860,9 +838,6 @@ class file_target(path, BaseTarget):
     def target_name(self):
         return str(self)
 
-    def __fspath__(self):
-        return super(file_target, self).__fspath__()
-
     def target_signature(self):
         """Return file signature"""
         if self.exists():
@@ -916,6 +891,10 @@ class file_target(path, BaseTarget):
 
     def __hash__(self):
         return hash(repr(self))
+
+    # this is the most important function that treats ~ and #
+    def __fspath__(self):
+        return super(file_target, self).__fspath__()
 
     def __eq__(self, obj):
         return isinstance(obj, file_target) and os.path.abspath(

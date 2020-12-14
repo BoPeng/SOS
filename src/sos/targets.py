@@ -682,8 +682,8 @@ class path(type(Path())):
         try:
             # this is the case for task execution where paths is directly specified in
             # _runtime.
-            if '_runtime' in env.sos_dict and 'paths' in env.sos_dict['_runtime']:
-                cfg = env.sos_dict['_runtime']
+            if '_runtime' in env.sos_dict and 'localhost' in env.sos_dict['_runtime']:
+                cfg = env.sos_dict['_runtime']['localhost']
             # this is the case for the main program, or when the task is executed
             else:
                 cfg = get_config(
@@ -693,7 +693,7 @@ class path(type(Path())):
                 )
             try:
                 return self._from_parts(
-                    [self._name[1]] + self._parts[1:]
+                    [cfg["paths"][self._parts[0][1:]]] + self._parts[1:]
                 )
             except KeyError:
                 return self._from_parts(

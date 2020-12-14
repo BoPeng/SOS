@@ -988,7 +988,7 @@ class RemoteHost(object):
                     if key == "max_walltime"
                     else self.config[key]
                 )
-        runtime['_runtime']['paths'] = get_config(['hosts', self.alias, 'paths'])
+        runtime['_runtime']['localhost'] = get_config(['hosts', self.alias])
 
         # only update task file if there are runtime information
         if len(runtime) > 1 or runtime["_runtime"] or runtime != old_runtime:

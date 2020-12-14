@@ -647,7 +647,7 @@ class path(type(Path())):
 
     # the PathLike interface defines __fspath__ as str()
     def __str__(self):
-        return super(path, __str__)(self.expandname().expanduser())
+        return super(path, self.expandname().expanduser()).__str__()
 
     def shrink(self, host=None):
         try:
@@ -701,9 +701,10 @@ class path(type(Path())):
                 )
         except Exception:
             if host is None and "__host__" not in env.sos_dict:
-                raise RuntimeError(
-                    "Incomplete sos environment: missing __host__ definition."
-                )
+                return self
+                # raise RuntimeError(
+                #     "Incomplete sos environment: missing __host__ definition."
+                # )
             if "CONFIG" not in env.sos_dict or "hosts" not in env.sos_dict["CONFIG"]:
                 raise RuntimeError(
                     "Incomplete sos environment: missing hosts definition."

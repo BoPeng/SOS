@@ -160,7 +160,7 @@ echo 'adf' >> 'result_remote.txt'
 @pytest.mark.skipif(not has_docker, reason="Docker container not usable")
 def test_signature_of_remote_target(clear_now_and_after, monkeypatch):
     """Test remote() target"""
-    monkeypatch.setenv('SOS_DEBUG', "TASK,-")
+    monkeypatch.setenv("SOS_DEBUG", "TASK,-")
     clear_now_and_after("remote_file.txt")  # , "result.txt")
     with open("remote_file.txt", "w") as rf:
         rf.write(
@@ -216,3 +216,101 @@ def test_signature_of_remote_target(clear_now_and_after, monkeypatch):
     )
     assert file_target("result.txt").target_exists()
     assert open("result.txt").read().strip().startswith("5")
+
+
+@pytest.mark.skipif(not has_docker, reason="Docker container not usable")
+def test_remote_exec(clear_now_and_after):
+    clear_now_and_after("result_exec.txt")
+    execute_workflow(
+        """
+        output: 'result_exec.txt'
+
+        task:
+        sh: expand=True
+            echo Output: {_output} > {_output}
+            echo PWD: `pwd`. >> {_output}
+        """,
+        options={
+            "config_file": "~/docker.yml",
+            "default_queue": "docker",
+            "sig_mode": "force",
+        },
+    )
+    assert file_target("result_exec.txt").target_exists()
+    with open(file_target("result_exec.txt")) as res:
+        result = res.read()
+        assert "Output: result_exec.txt" in result
+        assert "PWD: /root/vatlab/sos/test." in result
+
+
+@pytest.mark.skipif(not has_docker, reason="Docker container not usable")
+def test_remote_exec_named_path(clear_now_and_after):
+    clear_now_and_after("result_named_path.txt")
+    execute_workflow(
+        """
+        output: '#home/result_named_path.txt'
+
+        task:
+        sh: expand=True
+            echo Output: {_output} > {_output}
+            echo PWD: `pwd`. >> {_output}
+        """,
+        options={
+            "config_file": "~/docker.yml",
+            "default_queue": "docker",
+            "sig_mode": "force",
+        },
+    )
+    assert file_target("#home/result_named_path.txt").target_exists()
+    with open(file_target("#home/result_named_path.txt")) as res:
+        result = res.read()
+        print(result)
+        assert "Output: /root/result_named_path.txt" in result
+        assert "PWD: /root/vatlab/sos/test." in result
+
+
+@pytest.mark.skipif(not has_docker, reason="Docker container not usable")
+def test_remote_exec_workdir_named_path(clear_now_and_after):
+    clear_now_and_after(file_target("#home/wd/result_workdir_named_path.txt"))
+    execute_workflow(
+        """
+        output: '#home/wd/result_workdir_named_path.txt'
+
+        task: workdir='/root'
+        sh: expand=True
+            echo Output: {_output} > {_output}
+            echo PWD: `pwd`. >> {_output}
+        """,
+        options={
+            "config_file": "~/docker.yml",
+            "default_queue": "docker",
+            "sig_mode": "force",
+        },
+    )
+    assert file_target("#home/wd/result_workdir_named_path.txt").target_exists()
+    with open(file_target("#home/wd/result_workdir_named_path.txt")) as res:
+        result = res.read()
+        print(result)
+        assert "Output: /root/wd/result_workdir_named_path.txt" in result
+        assert "PWD: /root." in result
+
+
+@pytest.mark.skipif(not has_docker, reason="Docker container not usable")
+def test_remote_exec_workdir_wo_named_path(clear_now_and_after):
+    clear_now_and_after(file_target("result_workdir_wo_named.txt"))
+    with pytest.raises(Exception):
+        execute_workflow(
+            """
+        output: 'result_workdir_wo_named.txt'
+
+        task: workdir='/other'
+        sh: expand=True
+            echo Output: {_output} > {_output}
+            echo PWD: `pwd`. >> {_output}
+        """,
+            options={
+                "config_file": "~/docker.yml",
+                "default_queue": "docker",
+                "sig_mode": "force",
+            },
+        )

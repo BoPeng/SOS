@@ -645,9 +645,9 @@ class path(type(Path())):
         else:
             return list(get_config(["hosts", host, "paths"]).keys())
 
-    # the PathLike interface
-    def __fspath__(self):
-        return str(self.expandname().expanduser())
+    # the PathLike interface defines __fspath__ as str()
+    def __str__(self):
+        return super(path, __str__)(self.expandname().expanduser())
 
     def shrink(self, host=None):
         try:

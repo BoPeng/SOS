@@ -87,7 +87,9 @@ class WorkflowEngine:
         # process -c configfile
         with tempfile.NamedTemporaryFile(suffix='.yml', mode='w',
             dir=os.path.join(os.path.expanduser('~'), '.sos')) as temp:
-            yaml.safe_dump(env.sos_dict['CONFIG'], temp)
+            remote_cfg = copy.deepcopy(env.sos_dict['CONFIG'])
+            remote_cfg['localhost'] = self.alias
+            yaml.safe_dump(remote_cfg, temp)
             temp.flush()
             # copy the files over
             cfg_file = f'~/.sos/{os.path.basename(temp.name)}'

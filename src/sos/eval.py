@@ -111,6 +111,7 @@ def get_config(*args, **kwargs):
                 "excluded_keys",
                 "raw_keys",
                 "expand_keys",
+                "expected_type",
                 "raw",
             )
         }

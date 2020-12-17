@@ -80,11 +80,25 @@ class WorkflowEngine:
         else:
             raise RuntimeError(f"Failed to locate script {filename}")
 
+        # we send config files also to remote host, but change localhost
+        import tempfile
+        import yaml
+
+        # process -c configfile
+        with tempfile.NamedTemporaryFile(suffix='.yml', mode='w',
+            dir=os.path.join(os.path.expanduser('~'), '.sos')) as temp:
+            yaml.safe_dump(env.sos_dict['CONFIG'], temp)
+            temp.flush()
+            # copy the files over
+            cfg_file = f'~/.sos/{os.path.basename(temp.name)}'
+            self.agent.send_job_file(cfg_file, dir='.')
+
         self.local_filename = filename
         self.filename = list(ret.values())[0]
         self.command = self.remove_arg(command, "-r")
         # -c only point to local config file.
         self.command = self.remove_arg(self.command, "-c")
+        self.command += ['-c', cfg_file]
         # remove --slave mode because the master cannot reach remote slave
         self.command = self.remove_arg(self.command, "-m")
         # replace absolute path with relative one because remote sos might have

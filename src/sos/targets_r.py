@@ -5,8 +5,8 @@
 
 import os
 
-from sos.targets import BaseTarget, textMD5
-from sos.utils import env
+from sos.targets import BaseTarget
+from sos.utils import env, textMD5
 import shutil
 
 

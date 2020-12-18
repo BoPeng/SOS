@@ -29,8 +29,10 @@ from concurrent.futures import ProcessPoolExecutor
 from .eval import interpolate
 from .parser import SoS_Script
 from .syntax import SOS_ACTION_OPTIONS
-from .targets import textMD5, executable, file_target, fileMD5, path, paths, sos_targets
+from .targets import executable, file_target, path, paths, sos_targets
 from .utils import (
+    textMD5,
+    fileMD5,
     StopInputGroup,
     TerminateExecution,
     TimeoutInterProcessLock,

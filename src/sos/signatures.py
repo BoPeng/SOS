@@ -15,7 +15,7 @@ class SignatureDB:
     """Base class for signature DB using sqlite"""
 
     def __init__(self):
-        self.db_file = os.path.join(env.exec_dir, ".sos", self._db_name)
+        self.db_file = os.path.join(env.exec_dir, self._db_name)
         self._conn = None
         self._cache = []
 

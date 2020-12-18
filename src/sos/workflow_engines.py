@@ -7,8 +7,7 @@ import os
 import subprocess
 
 from .eval import cfg_interpolate
-from .utils import env
-from .targets import textMD5
+from .utils import env, textMD5
 
 
 class WorkflowEngine:

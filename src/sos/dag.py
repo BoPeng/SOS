@@ -10,8 +10,8 @@ from collections import defaultdict
 import fasteners
 import networkx as nx
 
-from .targets import (sos_step, sos_targets, sos_variable, textMD5, BaseTarget)
-from .utils import ActivityNotifier, env, short_repr
+from .targets import (sos_step, sos_targets, sos_variable, BaseTarget)
+from .utils import ActivityNotifier, env, short_repr, textMD5
 
 from typing import Union
 #

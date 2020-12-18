@@ -21,15 +21,20 @@ from typing import Union, Dict, Any, List
 import fasteners
 import pkg_resources
 
-from .utils import Error, env, pickleable, short_repr, stable_repr
+from .utils import (
+    Error,
+    env,
+    pickleable,
+    short_repr,
+    stable_repr,
+    textMD5,
+    objectMD5,
+    fileMD5,
+)
 from .pattern import extract_pattern
 from .eval import interpolate, get_config
 from .controller import request_answer_from_controller, send_message_to_controller
 
-try:
-    from xxhash import xxh64 as hash_md5
-except ImportError:
-    from hashlib import md5 as hash_md5
 
 __all__ = ["dynamic", "executable", "env_variable", "sos_variable"]
 
@@ -88,62 +93,6 @@ class UnavailableLock(Error):
 #
 # Runtime signature
 #
-
-
-def textMD5(text):
-    """Get md5 of a piece of text"""
-    m = hash_md5()
-    if isinstance(text, str):
-        m.update(text.encode())
-    else:
-        m.update(text)
-    return m.hexdigest()
-
-
-def objectMD5(obj):
-    """Get md5 of an object"""
-    if hasattr(obj, "target_name"):
-        return obj.target_name()
-    try:
-        return textMD5(pickle.dumps(obj))
-    except Exception:
-        return ""
-
-
-def fileMD5(filename, partial=True):
-    """Calculate partial MD5, basically the first and last 8M
-    of the file for large files. This should signicicantly reduce
-    the time spent on the creation and comparison of file signature
-    when dealing with large bioinformat ics datasets."""
-    filesize = os.path.getsize(filename)
-    # calculate md5 for specified file
-    md5 = hash_md5()
-    block_size = 2 ** 20  # buffer of 1M
-    try:
-        # 2**24 = 16M
-        if (not partial) or filesize < 2 ** 24:
-            with open(filename, "rb") as f:
-                while True:
-                    data = f.read(block_size)
-                    if not data:
-                        break
-                    md5.update(data)
-        else:
-            count = 16
-            # otherwise, use the first and last 8M
-            with open(filename, "rb") as f:
-                while True:
-                    data = f.read(block_size)
-                    count -= 1
-                    if count == 8:
-                        # 2**23 = 8M
-                        f.seek(-(2 ** 23), 2)
-                    if not data or count == 0:
-                        break
-                    md5.update(data)
-    except IOError as e:
-        sys.exit(f"Failed to read {filename}: {e}")
-    return md5.hexdigest()
 
 
 class BaseTarget(object):
@@ -651,11 +600,13 @@ class path(type(Path())):
 
     def __repr__(self):
         raw_str = super(path, self).__str__()
-        return "{}({!r})".format(self.__class__.__name__, raw_str.replace(self._flavour.sep, '/'))
+        return "{}({!r})".format(
+            self.__class__.__name__, raw_str.replace(self._flavour.sep, "/")
+        )
 
     def to_named_path(self, host=None):
         try:
-            if self._parts[0].startswith('#'):
+            if self._parts[0].startswith("#"):
                 return self
             #
             p = self if self.is_absolute() else self.resolve()
@@ -665,22 +616,34 @@ class path(type(Path())):
                 host,
                 expected_type=dict,
             )
-            if 'paths' not in cfg:
-                raise ValueError('No path is defined in host defintion.')
-            relative_paths = [(name, path) for name, path in cfg['paths'].items() if p.is_relative_to(path)]
+            if "paths" not in cfg:
+                raise ValueError("No path is defined in host defintion.")
+            relative_paths = [
+                (name, path)
+                for name, path in cfg["paths"].items()
+                if p.is_relative_to(path)
+            ]
             if not relative_paths:
-                raise ValueError(f'{self} is not relative to any of the pre-defined paths for host {host}.')
+                raise ValueError(
+                    f"{self} is not relative to any of the pre-defined paths for host {host}."
+                )
             if len(relative_paths) > 1:
-                env.logger.debug(f'{self} is relative to more than one pre-defined paths for host {host}')
+                env.logger.debug(
+                    f"{self} is relative to more than one pre-defined paths for host {host}"
+                )
                 max_length = max(len(str(x[1])) for x in relative_paths)
-                relative_paths = [x for x in relative_paths if len(str(x[1])) == max_length]
+                relative_paths = [
+                    x for x in relative_paths if len(str(x[1])) == max_length
+                ]
             # return the anchored
-            related = str(p)[len(relative_paths[0][1]):]
-            if related and not related.startswith('/'):
-                related = '/' + related
-            return '#' + relative_paths[0][0] + related
+            related = str(p)[len(relative_paths[0][1]) :]
+            if related and not related.startswith("/"):
+                related = "/" + related
+            return "#" + relative_paths[0][0] + related
         except Exception as e:
-            raise ValueError(f'Failed to relate {self} with any of the named paths: {e}')
+            raise ValueError(
+                f"Failed to relate {self} with any of the named paths: {e}"
+            )
 
     def expandname(self, host=None):
         if not self._parts or self._parts[0][:1] != "#":
@@ -688,8 +651,8 @@ class path(type(Path())):
         try:
             # this is the case for task execution where paths is directly specified in
             # _runtime.
-            if '_runtime' in env.sos_dict and 'localhost' in env.sos_dict['_runtime']:
-                cfg = env.sos_dict['_runtime']['localhost']
+            if "_runtime" in env.sos_dict and "localhost" in env.sos_dict["_runtime"]:
+                cfg = env.sos_dict["_runtime"]["localhost"]
             # this is the case for the main program, or when the task is executed
             else:
                 cfg = get_config(

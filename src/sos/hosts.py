@@ -23,7 +23,7 @@ from .targets import path, sos_targets
 from .task_engines import BackgroundProcess_TaskEngine
 from .workflow_engines import BackgroundProcess_WorkflowEngine
 from .tasks import TaskFile
-from .utils import env, expand_size, expand_time, format_HHMMSS, short_repr
+from .utils import env, expand_size, expand_time, format_HHMMSS, short_repr, textMD5
 
 #
 # A 'queue' is defined by queue configurations in SoS configuration files.
@@ -362,7 +362,6 @@ class RemoteHost(object):
             msg = f"error: {e}"
         if msg.startswith("error:"):
             env.logger.debug(msg)
-            from .targets import textMD5
             return textMD5(targets.target_name())
         else:
             return msg
@@ -963,6 +962,7 @@ class RemoteHost(object):
                 "port": self.port,
             },
         )
+
         # use scp for this simple case
         try:
             subprocess.check_call(send_cmd, shell=True)

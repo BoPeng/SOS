@@ -26,7 +26,6 @@ from .targets import (
     dynamic,
     sos_variable,
     RuntimeInfo,
-    textMD5,
 )
 from .utils import (
     env,
@@ -35,6 +34,7 @@ from .utils import (
     expand_size,
     load_config_files,
     get_traceback,
+    textMD5
 )
 from .eval import SoS_eval, stmtHash, analyze_global_statements
 from .tasks import TaskParams

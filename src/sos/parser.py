@@ -34,7 +34,7 @@ from .syntax import (
     SOS_SUBWORKFLOW,
     SOS_ACTION_OPTIONS,
 )
-from .targets import file_target, path, paths, sos_targets, textMD5
+from .targets import file_target, path, paths, sos_targets
 from .utils import (
     Error,
     env,
@@ -43,6 +43,7 @@ from .utils import (
     valid_expr_till,
     format_par,
     separate_options,
+    textMD5,
 )
 
 __all__ = ["SoS_Script"]

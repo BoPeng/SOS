@@ -48,8 +48,7 @@ from .targets import (
     file_target,
     sos_step,
     sos_targets,
-    invalid_target,
-    textMD5,
+    invalid_target
 )
 from .tasks import MasterTaskParams, TaskFile
 from .utils import (
@@ -61,6 +60,7 @@ from .utils import (
     short_repr,
     ProcessKilled,
     get_localhost_ip,
+    textMD5,
 )
 
 __all__: List = []

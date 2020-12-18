@@ -46,10 +46,15 @@ from .targets import (
     sos_targets,
     invalid_target,
     sos_variable,
-    textMD5,
     named_output,
 )
-from .utils import env, pickleable, short_repr, get_localhost_ip
+from .utils import (
+    env,
+    pickleable,
+    short_repr,
+    get_localhost_ip,
+    textMD5,
+)
 from .executor_utils import prepare_env, ExecuteError
 from .messages import encode_msg, decode_msg
 

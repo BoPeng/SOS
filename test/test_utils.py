@@ -243,19 +243,6 @@ task:
         self.assertEqual(stable_repr({1: 2, 3: 4}), "{1:2, 3:4}")
         self.assertEqual(stable_repr([1, 3, 4]), "[1, 3, 4]")
 
-    def test_file_sig(self):
-        '''test save and validate of file signature'''
-        with open('test_sig.txt', 'w') as ts:
-            ts.write('ba')
-        a = file_target('test_sig.txt')
-        a.write_sig()
-        self.assertTrue(a.validate())
-        #
-        a.zap()
-        self.assertTrue(a.validate())
-        with open('test_sig.txt', 'w') as ts:
-            ts.write('bac')
-        self.assertFalse(a.validate())
 
     def test_split_fstring(self):
         '''Test function to split f-string in pieces '''
@@ -325,3 +312,21 @@ input: something_unknown, sos_groups(output_from(['C1', 'C2']), by=2), group_by=
         if section.names[0][1] == 2:
             assert res['step_depends'] == sos_targets(
                 sos_step('C1'), sos_step('C2'))
+
+def test_file_sig(clear_now_and_after):
+    '''test save and validate of file signature'''
+    clear_now_and_after('test_sig.txt')
+
+    with open('test_sig.txt', 'w') as ts:
+        ts.write('ba')
+    a = file_target('test_sig.txt')
+    a.write_sig()
+    assert a.validate()
+    #
+    a.zap()
+    assert a.validate()
+
+    with open('test_sig.txt', 'w') as ts:
+        ts.write('bac')
+
+    assert not a.validate()

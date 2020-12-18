@@ -822,7 +822,8 @@ class file_target(path, BaseTarget):
 
     def sig_file(self):
         return os.path.join(
-            env.exec_dir, ".sos", f"{textMD5(str(self.resolve()))}.file_info"
+            os.path.expanduser('~'), '.sos', 'signatures',
+            f"{textMD5(str(self.resolve()))}.file_info"
         )
 
     def validate(self, sig=None):

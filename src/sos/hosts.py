@@ -681,7 +681,8 @@ class RemoteHost(object):
     def send_to_host(self, items):
         # we only copy files and directories, not other types of targets
         if isinstance(items, str):
-            items = glob.glob(items)
+            p = path(items)
+            items = [str(x) for x in p.parent.glob(p.name)]
         elif isinstance(items, path):
             items = [str(items)]
         elif isinstance(items, Sequence):

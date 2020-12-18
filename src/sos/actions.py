@@ -687,7 +687,8 @@ class SoS_ExecuteScript:
                 if ret != 0:
                     with open(debug_script_file, "w") as sfile:
                         sfile.write(self.script)
-                    cmd = cmd.replace(script_file, f".sos/{path(debug_script_file):b}")
+                    cmd = cmd.replace(script_file,
+                        os.path.expanduser(f"~/.sos/{path(debug_script_file):b}"))
                     out = (
                         f", stdout={kwargs['stdout']}"
                         if "stdout" in kwargs

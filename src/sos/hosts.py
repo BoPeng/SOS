@@ -681,25 +681,22 @@ class RemoteHost(object):
     def send_to_host(self, items):
         # we only copy files and directories, not other types of targets
         if isinstance(items, str):
-            p = path(items)
-            items = [str(x) for x in p.parent.glob(p.name)]
+            p = [path(items)]
         elif isinstance(items, path):
-            items = [str(items)]
+            p = [items]
         elif isinstance(items, Sequence):
             ignored = [x for x in items if not isinstance(x, (str, path))]
             if ignored:
                 env.logger.info(f"``Ignore`` {ignored}")
-            items = sum(
-                [
-                    glob.glob(x) if isinstance(x, str) else [x]
-                    for x in items
-                    if x not in ignored
-                ],
-                [],
-            )
+            p = [path(x) for x in items if isinstance(x, (str, path))]
         else:
             env.logger.warning(f"Unrecognized items to be sent to host: {items}")
             return {}
+
+        items = sum(
+            [list(x.parent.glob(x.name)) for x in p],
+            [],
+        )
 
         from .utils import find_symbolic_links
 
@@ -923,17 +920,25 @@ class RemoteHost(object):
                 )
 
         # map variables
-        runtime["_runtime"]["workdir"] = task_vars["_runtime"]["workdir"] if "workdir" in task_vars["_runtime"] else path.cwd().to_named_path()
+        runtime["_runtime"]["workdir"] = (
+            task_vars["_runtime"]["workdir"]
+            if "workdir" in task_vars["_runtime"]
+            else path.cwd().to_named_path()
+        )
 
-        if runtime["_runtime"]["workdir"].startswith('#'):
+        if runtime["_runtime"]["workdir"].startswith("#"):
             try:
                 path(runtime["_runtime"]["workdir"], host=self.alias)
             except Exception as e:
-                raise ValueError(f'Working directory {runtime["_runtime"]["workdir"]} does not exist on remote host {self.alias}')
+                raise ValueError(
+                    f'Working directory {runtime["_runtime"]["workdir"]} does not exist on remote host {self.alias}'
+                )
         elif path(runtime["_runtime"]["workdir"]).is_absolute():
-            env.logger.debug(f'Absolute path {path(runtime["_runtime"]["workdir"])} used as workdir.')
+            env.logger.debug(
+                f'Absolute path {path(runtime["_runtime"]["workdir"])} used as workdir.'
+            )
 
-        env.log_to_file('TASK', f'Set workdir to {runtime["_runtime"]["workdir"]}')
+        env.log_to_file("TASK", f'Set workdir to {runtime["_runtime"]["workdir"]}')
 
         # server restrictions #488
         for key in ("max_mem", "max_cores", "max_walltime"):
@@ -943,7 +948,9 @@ class RemoteHost(object):
                     if key == "max_walltime"
                     else self.config[key]
                 )
-        runtime['_runtime']['localhost'] = get_config(['hosts', self.alias], allowed_keys=['shared', 'paths'])
+        runtime["_runtime"]["localhost"] = get_config(
+            ["hosts", self.alias], allowed_keys=["shared", "paths"]
+        )
         # only update task file if there are runtime information
         if len(runtime) > 1 or runtime["_runtime"] or runtime != old_runtime:
             tf.runtime = runtime
@@ -1410,9 +1417,7 @@ class Host:
 
     def _get_task_and_workflow_engine(self):
         if self._engine_type == "process":
-            task_engine = BackgroundProcess_TaskEngine(
-                self.host_instances[self.alias]
-            )
+            task_engine = BackgroundProcess_TaskEngine(self.host_instances[self.alias])
             workflow_engine = BackgroundProcess_WorkflowEngine(
                 self.host_instances[self.alias]
             )
@@ -1420,14 +1425,10 @@ class Host:
             task_engine = None
             workflow_engine = None
 
-            for entrypoint in pkg_resources.iter_entry_points(
-                group="sos_taskengines"
-            ):
+            for entrypoint in pkg_resources.iter_entry_points(group="sos_taskengines"):
                 try:
                     if entrypoint.name == self._engine_type:
-                        task_engine = entrypoint.load()(
-                            self.host_instances[self.alias]
-                        )
+                        task_engine = entrypoint.load()(self.host_instances[self.alias])
                         break
                 except Exception as e:
                     env.logger.debug(
@@ -1461,8 +1462,9 @@ class Host:
             self._engine_type = self.config["queue_type"].strip()
         # if there is no engine, or if the engine was stopped
         if self.alias not in self.host_instances or (
-            hasattr(self.host_instances[self.alias], '_task_engine') and
-            self.host_instances[self.alias]._task_engine._is_stopped):
+            hasattr(self.host_instances[self.alias], "_task_engine")
+            and self.host_instances[self.alias]._task_engine._is_stopped
+        ):
             if self.config["address"] == "localhost":
                 self.host_instances[self.alias] = LocalHost(
                     self.config, test_connection=test_connection
@@ -1494,7 +1496,6 @@ class Host:
             and not self._task_engine.is_alive()
         ):
             self._task_engine.start()
-
 
     # public interface
     #

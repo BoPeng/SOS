@@ -1047,7 +1047,9 @@ def transcribe(text, cmd=None):
     if cmd is not None:
         text = "{}:\n{}".format(cmd, "    " + text.replace("\n", "\n    ") + "\n")
     with fasteners.InterProcessLock(os.path.join(env.temp_dir, "transcript.lck")):
-        with open(os.path.join(env.exec_dir, ".sos", "transcript.txt"), "a") as trans:
+        with open(
+            os.path.join(os.path.expanduser("~"), ".sos", "transcript.txt"), "a"
+        ) as trans:
             trans.write(text)
 
 
@@ -1098,17 +1100,16 @@ def expand_size(size):
 
 
 def find_symbolic_links(item):
-    item = os.path.expanduser(item)
-    if os.path.islink(item):
-        if not os.path.exists(item):
+    if item.is_symlink():
+        if not item.exists():
             env.logger.warning(f"Non-existent symbolic link {item}")
-        return {item: os.path.realpath(item)}
-    elif os.path.isfile(item):
+        return {item: item.resolve()}
+    elif item.is_file():
         return {}
     else:
         result = {}
-        for x in os.listdir(item):
-            result.update(find_symbolic_links(os.path.join(item, x)))
+        for x in item.iterdir():
+            result.update(find_symbolic_links(x))
         return result
 
 

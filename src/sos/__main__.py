@@ -1930,9 +1930,7 @@ def get_remove_parser(desc_only=False):
         "--external",
         action="store_true",
         default=False,
-        help="""By default the remove command will only remove files and
-        signatures under the current project directory. This option allows
-        sos to remove files and/or signature of external files.""",
+        help=argparse.SUPPRESS,
     )
     parser.add_argument(
         "--size",
@@ -2093,9 +2091,6 @@ def cmd_remove(args, unknown_args):
                 env.logger.debug(f"{filename} is not tracked.")
                 return False
             target = file_target(filename)
-            if target.is_external() and not args.external():
-                env.logger.debug("Ignore external file {}".format(filename))
-                return False
             if args.size:
                 if (args.size > 0 and os.path.getsize(filename) < args.size) or (
                     args.size < 0 and os.path.getsize(filename) > -args.size
@@ -2141,9 +2136,6 @@ def cmd_remove(args, unknown_args):
             if os.path.abspath(filename) in tracked_files:
                 return False
             target = file_target(filename)
-            if target.is_external() and not args.external():
-                env.logger.debug("Ignore external file {}".format(filename))
-                return False
             if args.size:
                 if (args.size > 0 and os.path.getsize(filename) < args.size) or (
                     args.size < 0 and os.path.getsize(filename) > -args.size
@@ -2187,9 +2179,6 @@ def cmd_remove(args, unknown_args):
 
         def func(filename, resp):
             target = file_target(filename)
-            if target.is_external() and not args.external():
-                env.logger.debug("Ignore external file {}".format(filename))
-                return False
             if args.size:
                 if (args.size > 0 and os.path.getsize(filename) < args.size) or (
                     args.size < 0 and os.path.getsize(filename) > -args.size
@@ -2231,9 +2220,6 @@ def cmd_remove(args, unknown_args):
         # default behavior
         def func(filename, resp):
             target = file_target(filename)
-            if target.is_external() and not args.external():
-                env.logger.debug("Ignore external file {}".format(filename))
-                return False
             if args.size:
                 if (args.size > 0 and os.path.getsize(filename) < args.size) or (
                     args.size < 0 and os.path.getsize(filename) > -args.size
@@ -2277,15 +2263,6 @@ def cmd_remove(args, unknown_args):
     resp = AnswerMachine(always_yes=args.dryrun, confirmed=args.__confirm__)
     for target in args.targets:
         target = os.path.expanduser(target)
-        if file_target(target).is_external():
-            if os.path.isdir(target):
-                sys.exit("Canot remove external directory {}".format(target))
-            elif not args.external:
-                sys.exit(
-                    "Only subdirectories of the current directory can be removed unless option --external is specified. {} specified.".format(
-                        target
-                    )
-                )
         if os.path.isfile(target):
             removed += func(target, resp)
             continue

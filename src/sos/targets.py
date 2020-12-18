@@ -711,13 +711,6 @@ class path(type(Path())):
                     f'Named path "{name}" not defined for host {env.sos_dict.get("__host__", "localhost") if host is None else host}'
                 )
 
-    def is_external(self):
-        try:
-            return os.path.relpath(self.fullname(), env.exec_dir).startswith("..")
-        except Exception:
-            # under windows the file might be on different volume
-            return True
-
     def fullname(self):
         return os.path.abspath(str(self))
 
@@ -1117,11 +1110,6 @@ class sos_targets(BaseTarget, Sequence, os.PathLike):
         [x.set_traced() for x in self._targets]
         self.traced = True
         return self
-
-    def is_external(self):
-        if not self.valid():
-            return False
-        return all(x.is_external() for x in self._targets if isinstance(x, file_target))
 
     def unspecified(self):
         return not self._targets and self._undetermined is True

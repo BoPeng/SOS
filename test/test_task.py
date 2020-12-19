@@ -16,7 +16,7 @@ from contextlib import contextmanager
 from sos.hosts import Host
 from sos.parser import SoS_Script
 from sos.targets import file_target
-from sos.utils import env
+from sos.utils import env, textMD5
 from sos.tasks import TaskParams, TaskFile
 from sos import execute_workflow
 from sos.workflow_executor import Base_Executor
@@ -48,7 +48,13 @@ def cd_new(path):
 
 
 def get_tasks():
-    conn = sqlite3.connect(".sos/workflow_signatures.db")
+    from sos.signatures import WorkflowSignatures
+    env.exec_dir = os.path.join(
+            os.path.expanduser("~"), ".sos", textMD5(os.getcwd())
+        )
+    db = WorkflowSignatures()
+    conn = db.conn
+    #conn = sqlite3.connect(os.path.join(env.exec_dir, "workflow_signatures.db"))
     cur = conn.cursor()
     cur.execute('SELECT DISTINCT id FROM workflows WHERE entry_type = "task"')
     return [x[0] for x in cur.fetchall()]
@@ -786,7 +792,7 @@ touch {_output}
                 )
             subprocess.call("sos run test -s force -q localhost", shell=True)
             tasks = get_tasks()
-            subprocess.call("sos purge --all -s failed", shell=True)
+            subprocess.call("sos purge -s failed", shell=True)
         # check tasks
         taskstatus = [
             x.split()[0]

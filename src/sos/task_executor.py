@@ -16,7 +16,7 @@ from contextlib import redirect_stdout, redirect_stderr
 from threading import Event
 
 from .eval import SoS_eval, SoS_exec
-from .monitor import ProcessMonitor
+from .monitor import TaskMonitor
 from .targets import (
     InMemorySignature,
     file_target,
@@ -91,7 +91,7 @@ class BaseTaskExecutor(object):
             if "_runtime" not in runtime:
                 runtime["_runtime"] = {}
 
-            m = ProcessMonitor(
+            m = TaskMonitor(
                 task_id,
                 monitor_interval=monitor_interval,
                 resource_monitor_interval=resource_monitor_interval,

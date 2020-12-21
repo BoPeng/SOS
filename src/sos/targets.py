@@ -614,6 +614,7 @@ class path(type(Path())):
                 "hosts",
                 host,
                 expected_type=dict,
+                allowed_keys=["shared", "paths"]
             )
             if "paths" not in cfg:
                 raise ValueError("No path is defined in host defintion.")

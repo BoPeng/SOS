@@ -508,12 +508,10 @@ class RuntimeEnvironments(object):
             os.path.expanduser("~"), ".sos", textMD5(os.getcwd())
         )
 
-        os.makedirs(
-            os.path.join(os.path.expanduser("~"), ".sos", "tasks"), exist_ok=True
-        )
-        os.makedirs(
-            os.path.join(os.path.expanduser("~"), ".sos", "signatures"), exist_ok=True
-        )
+        for dir_name in ("tasks", "workflows", "signatures"):
+            os.makedirs(
+                os.path.join(os.path.expanduser("~"), ".sos", dir_name), exist_ok=True
+            )
 
     #
     # attribute logger

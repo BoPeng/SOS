@@ -39,7 +39,7 @@ class WorkflowEngine:
             else:
                 with open(self.local_filename) as script_file:
                     script = script_file.read()
-            self.job_name = textMD5(script)
+            self.job_name = 'W' + textMD5(script)
             self.template_args["filename"] = self.filename
             self.template_args["script"] = script
             self.template_args["command"] = self.command
@@ -80,28 +80,27 @@ class WorkflowEngine:
             raise RuntimeError(f"Failed to locate script {filename}")
 
         # we send config files also to remote host, but change localhost
-        import tempfile
         import yaml
 
         # process -c configfile
-        with tempfile.NamedTemporaryFile(suffix='.yml', mode='w',
-            dir=os.path.join(os.path.expanduser('~'), '.sos')) as temp:
+        host_cfg_file = os.path.join(os.path.expanduser('~'), '.sos', f'config_{self.alias}.yml')
+        with open(host_cfg_file, 'w') as cfg:
             remote_cfg = copy.deepcopy(env.sos_dict['CONFIG'])
             remote_cfg['localhost'] = self.alias
-            yaml.safe_dump(remote_cfg, temp)
-            temp.flush()
+            yaml.safe_dump(remote_cfg, cfg)
+            cfg.flush()
             # copy the files over
-            cfg_file = f'~/.sos/{os.path.basename(temp.name)}'
-            self.agent.send_job_file(cfg_file, dir='.')
+            self.agent.send_job_file(f'~/.sos/config_{self.alias}.yml', dir='.')
 
         self.local_filename = filename
         self.filename = list(ret.values())[0]
         self.command = self.remove_arg(command, "-r")
         # -c only point to local config file.
         self.command = self.remove_arg(self.command, "-c")
-        self.command += ['-c', cfg_file]
+        self.command += ['-c', f'~/.sos/config_{self.alias}.yml']
         # remove --slave mode because the master cannot reach remote slave
         self.command = self.remove_arg(self.command, "-m")
+        self.command += ['-M', self.job_name if hasattr(self, 'job_name') else f'M']
         # replace absolute path with relative one because remote sos might have
         # a different path.
         if os.path.basename(command[0]) == "sos":

@@ -241,9 +241,8 @@ class LocalHost(object):
 
     def send_job_file(self, job_file, dir="tasks"):
         # on the same file system, no action is needed.
-        dest_job_file = os.path.join(
-            os.path.expanduser("~"), ".sos", dir, os.path.basename(job_file)
-        )
+        dest_job_file = path(f"~/.sos/{dir}/{os.path.basename(job_file)}")
+        job_file = path(job_file)
         if job_file != dest_job_file:
             shutil.copyfile(job_file, dest_job_file)
 

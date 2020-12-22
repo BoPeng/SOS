@@ -45,7 +45,7 @@ RUN  pip install spyder jedi notebook nbconvert nbformat pyyaml psutil tqdm
 RUN  pip install fasteners pygments ipython ptpython networkx pydotplus
 
 ARG  SHA=LATEST
-RUN  SHA=$SHA git clone  http://github.com/vatlab/sos sos
+RUN  SHA=$SHA git clone -b monitor http://github.com/vatlab/sos sos
 RUN  cd sos && pip install . -U
 RUN  pip install sos-pbs
 

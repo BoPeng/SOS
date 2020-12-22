@@ -298,7 +298,7 @@ class Base_Executor:
         if env.config["sig_mode"] is None:
             env.config["sig_mode"] = "default"
         # interactive mode does not pass workflow
-        self.md5 = self.calculate_md5() if self.workflow else "0"
+        self.md5 = self.workflow.calc_md5(self.args) if self.workflow else "0"
 
         env.config["workflow_id"] = self.md5
         env.sos_dict.set("workflow_id", self.md5)
@@ -400,13 +400,6 @@ class Base_Executor:
             # when the run() function is called again, the controller
             # thread will be start again.
             env.config["master_id"] = None
-
-    def calculate_md5(self) -> str:
-        with StringIO() as sig:
-            for step in self.workflow.sections + self.workflow.auxiliary_sections:
-                sig.write(f"{step.step_name()}: {step.md5}\n")
-            sig.write(f"{self.args}\n")
-            return textMD5(sig.getvalue())[:16]
 
     def reset_dict(self) -> None:
 

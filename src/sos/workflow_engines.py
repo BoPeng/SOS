@@ -32,16 +32,7 @@ class WorkflowEngine:
 
     def expand_template(self):
         try:
-            if self.local_filename.lower().endswith(".ipynb"):
-                from .converter import extract_workflow
-
-                script = extract_workflow(self.local_filename)
-            else:
-                with open(self.local_filename) as script_file:
-                    script = script_file.read()
-            self.job_name = 'W' + textMD5(script)
             self.template_args["filename"] = self.filename
-            self.template_args["script"] = script
             self.template_args["command"] = self.command
             self.template_args["job_name"] = self.job_name
             self.job_text = (
@@ -70,14 +61,13 @@ class WorkflowEngine:
 
     def execute_workflow(self, filename, command, **template_args):
         # there is no need to prepare workflow (e.g. copy over)
-        if os.path.isfile(filename):
-            ret = self.agent.send_to_host([filename])
-        elif os.path.isfile(filename + ".sos"):
-            ret = self.agent.send_to_host([filename + ".sos"])
-        elif os.path.isfile(filename + ".ipynb"):
-            ret = self.agent.send_to_host([filename + ".ipynb"])
-        else:
-            raise RuntimeError(f"Failed to locate script {filename}")
+        from .parser import SoS_Script
+        from .__main__ import get_run_parser
+
+        parser = get_run_parser(interactive=False, with_workflow=True)
+        args, workflow_args = parser.parse_known_args(command[2:])
+        script = SoS_Script(filename=filename)
+        workflow = script.workflow(args.workflow, use_default=not args.__targets__)
 
         # we send config files also to remote host, but change localhost
         import yaml
@@ -93,6 +83,16 @@ class WorkflowEngine:
             self.agent.send_job_file(f'~/.sos/config_{self.alias}.yml', dir='.')
 
         self.local_filename = filename
+
+        self.job_name = workflow.calc_md5(workflow_args)
+
+        if os.path.isfile(filename):
+            ret = self.agent.send_to_host([filename])
+        elif os.path.isfile(filename + ".sos"):
+            ret = self.agent.send_to_host([filename + ".sos"])
+        elif os.path.isfile(filename + ".ipynb"):
+            ret = self.agent.send_to_host([filename + ".ipynb"])
+
         self.filename = list(ret.values())[0]
         self.command = self.remove_arg(command, "-r")
         # -c only point to local config file.
@@ -100,7 +100,7 @@ class WorkflowEngine:
         self.command += ['-c', f'~/.sos/config_{self.alias}.yml']
         # remove --slave mode because the master cannot reach remote slave
         self.command = self.remove_arg(self.command, "-m")
-        self.command += ['-M', self.job_name if hasattr(self, 'job_name') else f'M']
+        self.command += ['-M', self.job_name]
         # replace absolute path with relative one because remote sos might have
         # a different path.
         if os.path.basename(command[0]) == "sos":

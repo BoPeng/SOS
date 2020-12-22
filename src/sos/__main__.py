@@ -500,17 +500,6 @@ def cmd_run(args, workflow_args):
         load_config_files(args.__config__)
         host = Host(args.__remote__[0])
 
-        if not os.path.isfile(args.script):
-            if os.path.isfile(args.script + ".sos"):
-                args.script = args.script + ".sos"
-            elif os.path.isfile(args.script + ".ipynb"):
-                args.script = args.script + ".ipynb"
-            else:
-                raise ValueError(
-                    f"File not found {args.script} (tried {args.script}, {args.script}.sos, and {args.script}.ipynb)"
-                )
-
-        host.send_to_host(args.script)
         template_args = {}
         for item in args.__remote__[1:]:
             if "=" not in item:

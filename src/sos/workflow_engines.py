@@ -357,7 +357,7 @@ class WorkflowPulse:
                     continue
                 if not line.startswith("#"):
                     try:
-                        last_active_time = line.split('\t')
+                        last_active_time = line.split('\t', 1)[0]
                     except:
                         pass
                     continue

@@ -123,6 +123,26 @@ class WorkflowEngine:
         env.log_to_file("WORKFLOW", f"Execute command on remote host: {self.command}")
         return True
 
+    def kill_workflows(self, workflows, tags=None, all_workflows=False):
+        cmd = "{} kill {} {} {}".format(
+            self.agent.config.get("sos", "sos"),
+            "" if all_workflows else " ".join(workflows),
+            f'--tags {" ".join(tags)}' if tags else "",
+            "-a" if all_workflows else "",
+        )
+
+        try:
+            ret = self.agent.check_output(cmd)
+            env.logger.debug(f'"{cmd}" executed with response "{ret}"')
+        except subprocess.CalledProcessError:
+            env.logger.error(
+                "Failed to kill all workflows"
+                if all_workflows
+                else f'Failed to kill workflows {" ".join(workflows)}'
+            )
+            return ""
+        return ret
+
 
 class BackgroundProcess_WorkflowEngine(WorkflowEngine):
     def __init__(self, agent):
@@ -205,6 +225,7 @@ class WorkflowPulse:
 
     def mark_killed(self):
         from stat import S_IREAD
+
         os.chmod(self.pulse_file, S_IREAD)
 
     @property
@@ -437,12 +458,16 @@ def kill_workflow(workflow):
     if status == "completed":
         return "completed"
     with open(
-        os.path.join(os.path.expanduser("~"), ".sos", "workflows", workflow + ".soserr"), "a"
+        os.path.join(
+            os.path.expanduser("~"), ".sos", "workflows", workflow + ".soserr"
+        ),
+        "a",
     ) as err:
         err.write(f"Workflow {workflow} killed by sos kill command or workflow engine.")
 
     wp.mark_killed()
     return "aborted"
+
 
 def kill_workflows(workflows, tags=None):
     import glob
@@ -456,7 +481,9 @@ def kill_workflows(workflows, tags=None):
         all_workflows = []
         for t in workflows:
             matched = glob.glob(
-                os.path.join(os.path.expanduser("~"), ".sos", "workflows", f"{t}*.pulse")
+                os.path.join(
+                    os.path.expanduser("~"), ".sos", "workflows", f"{t}*.pulse"
+                )
             )
             matched = [os.path.basename(x)[:-6] for x in matched]
             if not matched:
@@ -465,7 +492,9 @@ def kill_workflows(workflows, tags=None):
                 all_workflows.extend(matched)
     if tags:
         all_workflows = [
-            x for x in all_workflows if any(x in tags for x in WorkflowPulse(x).tags.split())
+            x
+            for x in all_workflows
+            if any(x in tags for x in WorkflowPulse(x).tags.split())
         ]
 
     if not all_workflows:
@@ -476,6 +505,7 @@ def kill_workflows(workflows, tags=None):
     for wf in all_workflows:
         ret = kill_workflow(wf)
         print(f"{wf}\t{ret}")
+
 
 def purge_workflows(workflows, verbosity=1):
     return

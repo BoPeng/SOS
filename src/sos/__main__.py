@@ -1588,7 +1588,7 @@ def get_status_parser(desc_only=False):
         help="""A configuration file with host
         definitions, in case the definitions are not defined in global sos config.yml files.""",
     )
-    parser.add_argument("-a", "--all", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("-a", "--all", help=argparse.SUPPRESS)
     parser.add_argument(
         "-v",
         dest="verbosity",
@@ -1653,7 +1653,8 @@ def cmd_status(args, workflow_args):
     try:
         load_config_files(args.config)
         if not args.queue:
-            print_task_status(
+            if args.all is None or args.all == 'tasks':
+                print_task_status(
                 tasks=args.tasks,
                 check_all=not args.tasks and not args.workflows,
                 verbosity=args.verbosity,
@@ -1663,7 +1664,8 @@ def cmd_status(args, workflow_args):
                 tags=args.tags,
                 status=args.status,
             )
-            print_workflow_status(
+            if args.all is None or args.all == 'workflows':
+                print_workflow_status(
                 workflows=args.workflows,
                 check_all=not args.tasks and not args.workflows,
                 verbosity=args.verbosity,

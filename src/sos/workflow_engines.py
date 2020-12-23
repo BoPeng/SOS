@@ -136,10 +136,11 @@ class WorkflowEngine:
     ):
         try:
             return self.agent.check_output(
-                "{} status {} -v {} {} {} {} {} {}".format(
+                "{} status {} -v {} {} {} {} {} {} {}".format(
                     self.agent.config.get("sos", "sos"),
                     "" if workflows is None else " ".join(workflows),
                     verbosity,
+                    "--all workflows" if check_all else "",
                     "--html" if html else "",
                     "--numeric-times" if numeric_times else "",
                     f"--age {age}" if age else "",

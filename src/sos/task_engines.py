@@ -609,10 +609,11 @@ class TaskEngine(threading.Thread):
                     status=None):
         try:
             return self.agent.check_output(
-                "{} status {} -v {} {} {} {} {} {}".format(
+                "{} status {} -v {} {} {} {} {} {} {}".format(
                     self.agent.config.get('sos', 'sos'),
                     '' if tasks is None else ' '.join(tasks),
                     verbosity,
+                    '--all tasks' if check_all else '',
                     '--html' if html else '',
                     '--numeric-times' if numeric_times else '',
                     f'--age {age}' if age else '',

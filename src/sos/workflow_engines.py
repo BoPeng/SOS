@@ -350,14 +350,22 @@ class WorkflowPulse:
     def parse_pulse_file(self):
         self._status = "unknown"
         self._tags = ""
+        last_active_time = None
         with open(self.pulse_file) as pulse:
             for line in pulse:
-                if not line.startswith("#") or line.startswith("#time\t"):
+                if line.startswith("#time\t"):
+                    continue
+                if not line.startswith("#"):
+                    try:
+                        last_active_time = line.split('\t')
+                    except:
+                        pass
                     continue
                 fields = line.split("\t")
                 if len(fields) != 3:
                     env.logger.error(line)
                     continue
+                last_active_time = fields[0][1:]
                 if fields[1] == "status":
                     self._status = fields[2].strip()
                     if self._status == "running":
@@ -374,6 +382,8 @@ class WorkflowPulse:
                     self._tags = fields[2].strip()
         if not os.stat(self.pulse_file).st_mode & stat.S_IWUSR:
             self._status = 'aborted'
+        if last_active_time is None or time.time() - float(last_active_time) > 120:
+            self._status = 'failed'
 
 
 def print_workflow_status(

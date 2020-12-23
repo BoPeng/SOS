@@ -558,5 +558,115 @@ def kill_workflows(workflows, tags=None):
         print(f"{wf}\t{ret}")
 
 
-def purge_workflows(workflows, verbosity=1):
-    return
+def purge_workflows(
+    workflows, purge_all=None, age=None, status=None, tags=None, verbosity=2
+):
+    import glob
+
+    if workflows:
+        all_workflows = []
+        for t in workflows:
+            matched = glob.glob(
+                os.path.join(
+                    os.path.expanduser("~"), ".sos", "workflows", f"{t}*.pulse"
+                )
+            )
+            matched = [(os.path.basename(x)[:-6], os.path.getmtime(x)) for x in matched]
+            if not matched:
+                print(f"{t}\tmissing")
+            all_workflows.extend(matched)
+    elif purge_all or age or status or tags:
+        workflows = glob.glob(
+            os.path.join(os.path.expanduser("~"), ".sos", "workflows", "*.pulse")
+        )
+        all_workflows = [
+            (os.path.basename(x)[:-6], os.path.getmtime(x)) for x in workflows
+        ]
+    else:
+        raise ValueError(
+            "Please specify either workflows or one or more of --all, --status, --tags--age"
+        )
+    #
+    if age is not None:
+        age = expand_time(age, default_unit="d")
+        if age > 0:
+            all_workflows = [x for x in all_workflows if time.time() - x[1] >= age]
+        else:
+            all_workflows = [x for x in all_workflows if time.time() - x[1] <= -age]
+
+    if status:
+        all_workflows = [
+            x for x in all_workflows if WorkflowPulse(x[0]).status in status
+        ]
+
+    if tags:
+        all_workflows = [
+            x
+            for x in all_workflows
+            if any(x in tags for x in WorkflowPulse(x[0]).tags.split())
+        ]
+    #
+    # remoe all workflow files
+    all_workflows = set([x[0] for x in all_workflows])
+    if all_workflows:
+        #
+        # find all related files, including those in nested directories
+        from collections import defaultdict
+
+        to_be_removed = defaultdict(list)
+        for dirname, _, filelist in os.walk(
+            os.path.join(os.path.expanduser("~"), ".sos", "workflows")
+        ):
+            for f in filelist:
+                ID = os.path.basename(f).split(".", 1)[0]
+                if ID in all_workflows:
+                    to_be_removed[ID].append(os.path.join(dirname, f))
+        #
+        status_cache = {}
+        for workflow in all_workflows:
+            removed = True
+            for f in to_be_removed[workflow]:
+                try:
+                    if verbosity > 3:
+                        if (
+                            "WORKFLOW" in env.config["SOS_DEBUG"]
+                            or "ALL" in env.config["SOS_DEBUG"]
+                        ):
+                            env.log_to_file("TASK", f"Remove {f}")
+                    os.remove(f)
+                except Exception as e:
+                    removed = False
+                    if verbosity > 0:
+                        env.logger.warning(
+                            f"Failed to purge workflow {workflow[0]}: {e}"
+                        )
+            status_cache.pop(workflow, None)
+            if removed and verbosity > 1:
+                print(f"{workflow}\tpurged")
+    elif verbosity > 1:
+        env.logger.debug("No matching workflows to purge")
+    if purge_all and age is None and status is None and tags is None:
+        matched = glob.glob(
+            os.path.join(os.path.expanduser("~"), ".sos", "workflows", "*")
+        )
+        count = 0
+        for f in matched:
+            if os.path.isdir(f):
+                import shutil
+
+                try:
+                    shutil.rmtree(f)
+                    count += 1
+                except Exception as e:
+                    if verbosity > 0:
+                        env.logger.warning(f"Failed to remove {f}: {e}")
+            else:
+                try:
+                    os.remove(f)
+                    count += 1
+                except Exception as e:
+                    if verbosity > 0:
+                        env.logger.warning(f"Failed to remove {e}")
+        if count > 0 and verbosity > 1:
+            env.logger.info(f"{count} other files and directories are removed.")
+    return ""

@@ -220,7 +220,7 @@ class WorkflowMonitor(threading.Thread):
         start_time = time.time()
         while True:
             try:
-                if not os.path.isfile(self.pulse_file) or not not os.stat(self.pulse_file).st_mode & stat.S_IWUSR:
+                if not os.path.isfile(self.pulse_file) or not os.stat(self.pulse_file).st_mode & stat.S_IWUSR:
                     env.logger.warning(f"Workflow {self.workflow_id} ``aborted``")
                     # the job should be killed
                     p = psutil.Process(self.pid)

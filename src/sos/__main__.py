@@ -1589,7 +1589,7 @@ def get_status_parser(desc_only=False):
         help="""A configuration file with host
         definitions, in case the definitions are not defined in global sos config.yml files.""",
     )
-    parser.add_argument("-a", "--all", help=argparse.SUPPRESS)
+    parser.add_argument("-a", "--all", nargs='?', const='both', help=argparse.SUPPRESS)
     parser.add_argument(
         "-v",
         dest="verbosity",

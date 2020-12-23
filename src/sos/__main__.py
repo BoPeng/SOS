@@ -453,13 +453,13 @@ def get_run_parser(interactive=False, with_workflow=True, desc_only=False):
             unless a separate filename is specified.""",
     )
     output.add_argument(
-        '-M',
+        "-M",
         metavar="MONITOR_ID",
         dest="monitor_id",
-        help='''If a monitor ID is specified, the workflow will be executed in
+        help="""If a monitor ID is specified, the workflow will be executed in
             monitor mode with resource used written to ~/.sos/workflows/{id}.pulse.
             Only workflows executed in monitored mode will be reported by "sos status".
-        '''
+        """,
     )
     output.add_argument(
         "-v",
@@ -666,14 +666,13 @@ def cmd_run(args, workflow_args):
 
         if args.monitor_id:
             from .monitor import WorkflowMonitor
+
             m = WorkflowMonitor(
-                args.monitor_id,
-                monitor_interval=5,
-                resource_monitor_interval=60
+                args.monitor_id, monitor_interval=5, resource_monitor_interval=60
             )
             m.start()
-            m.write('status\trunning')
-            m.write(f'tags\t{args.script}')
+            m.write("status\trunning")
+            m.write(f"tags\t{args.script}")
 
         executor = Base_Executor(workflow, args=workflow_args, config=config)
         # start controller
@@ -691,19 +690,18 @@ def cmd_run(args, workflow_args):
     except Exception as e:
         if args.monitor_id:
             try:
-                m.write('status\tfailed')
+                m.write("status\tfailed")
             except Exception as e:
-                env.logger.debug(f'Failed to report to monitor process: {e}')
+                env.logger.debug(f"Failed to report to monitor process: {e}")
         if args.verbosity and args.verbosity > 2:
             sys.stderr.write(get_traceback())
         env.logger.error(str(e))
         sys.exit(1)
     if args.monitor_id:
         try:
-            m.write('status\tcompleted')
+            m.write("status\tcompleted")
         except Exception as e:
-            env.logger.debug(f'Failed to report to monitor process: {e}')
-
+            env.logger.debug(f"Failed to report to monitor process: {e}")
 
 
 #
@@ -1262,6 +1260,7 @@ def cmd_preview(args, unknown_args):
         if args.exists or args.signature:
             from base64 import b64decode
             from .targets import sos_targets, file_target
+
             assert file_target
 
             items = b64decode(
@@ -1600,10 +1599,7 @@ def get_status_parser(desc_only=False):
             information to standard output (default to 2).""",
     )
     parser.add_argument(
-        '-f',
-        '--full',
-        action='store_true',
-        help='''Display full status'''
+        "-f", "--full", action="store_true", help="""Display full status"""
     )
     parser.add_argument(
         "-t",
@@ -1644,8 +1640,12 @@ def cmd_status(args, workflow_args):
     from .utils import env, load_config_files, get_traceback
     from .hosts import Host
 
-    args.tasks = args.jobs if not args.jobs else [x for x in args.jobs if x.startswith('t')]
-    args.workflows = args.jobs if not args.jobs else [x for x in args.jobs if x.startswith('w')]
+    args.tasks = (
+        args.jobs if not args.jobs else [x for x in args.jobs if x.startswith("t")]
+    )
+    args.workflows = (
+        args.jobs if not args.jobs else [x for x in args.jobs if x.startswith("w")]
+    )
 
     if args.full:
         args.verbosity = 4
@@ -1691,7 +1691,7 @@ def cmd_status(args, workflow_args):
             if host._workflow_engine is not None:
                 print(
                     host._workflow_engine.query_workflows(
-                        tasks=args.workflows,
+                        workflows=args.workflows,
                         check_all=not args.tasks and not args.workflows,
                         verbosity=args.verbosity,
                         html=args.html,
@@ -1700,7 +1700,7 @@ def cmd_status(args, workflow_args):
                         tags=args.tags,
                         status=args.status,
                     )
-            )
+                )
     except Exception as e:
         if args.verbosity and args.verbosity > 2:
             sys.stderr.write(get_traceback())
@@ -1792,6 +1792,14 @@ def cmd_purge(args, workflow_args):
 
     # from .monitor import summarizeExecution
     env.verbosity = args.verbosity
+
+    args.tasks = (
+        args.jobs if not args.jobs else [x for x in args.jobs if x.startswith("t")]
+    )
+    args.workflows = (
+        args.jobs if not args.jobs else [x for x in args.jobs if x.startswith("w")]
+    )
+
     try:
         if not (args.jobs or args.all or args.status or args.tags or args.age):
             raise ValueError(
@@ -1807,7 +1815,7 @@ def cmd_purge(args, workflow_args):
             host = Host(args.queue)
             print(
                 host._task_engine.purge_tasks(
-                    args.jobs,
+                    args.tasks,
                     args.all,
                     args.age,
                     args.status,
@@ -1815,6 +1823,18 @@ def cmd_purge(args, workflow_args):
                     args.verbosity,
                 )
             )
+            if host._workflow_engine is not None:
+                print(
+                    host._workflow_engine.purge_workflows(
+                        args.workflows,
+                        args.all,
+                        args.age,
+                        args.status,
+                        args.tags,
+                        args.verbosity,
+                    )
+                )
+
     except Exception as e:
         if args.verbosity and args.verbosity > 2:
             sys.stderr.write(get_traceback())
@@ -1890,8 +1910,12 @@ def cmd_kill(args, workflow_args):
     from .hosts import Host
 
     env.verbosity = args.verbosity
-    args.tasks = args.jobs if not args.jobs else [x for x in args.jobs if x.startswith('t')]
-    args.workflows = args.jobs if not args.jobs else [x for x in args.jobs if x.startswith('w')]
+    args.tasks = (
+        args.jobs if not args.jobs else [x for x in args.jobs if x.startswith("t")]
+    )
+    args.workflows = (
+        args.jobs if not args.jobs else [x for x in args.jobs if x.startswith("w")]
+    )
 
     if not args.queue:
         if args.all:
@@ -1928,9 +1952,9 @@ def cmd_kill(args, workflow_args):
         if host._workflow_engine:
             print(
                 host._workflow_engine.kill_workflows(
-                    tasks=args.workflows, tags=args.tags, all_tasks=args.all
+                    workflows=args.workflows, tags=args.tags, all_tasks=args.all
                 )
-        )
+            )
 
 
 #

@@ -5,9 +5,11 @@
 import copy
 import os
 import subprocess
+import time
+
 
 from .eval import cfg_interpolate
-from .utils import env, textMD5
+from .utils import env, textMD5, expand_time
 
 
 class WorkflowEngine:
@@ -73,14 +75,16 @@ class WorkflowEngine:
         import yaml
 
         # process -c configfile
-        host_cfg_file = os.path.join(os.path.expanduser('~'), '.sos', f'config_{self.alias}.yml')
-        with open(host_cfg_file, 'w') as cfg:
-            remote_cfg = copy.deepcopy(env.sos_dict['CONFIG'])
-            remote_cfg['localhost'] = self.alias
+        host_cfg_file = os.path.join(
+            os.path.expanduser("~"), ".sos", f"config_{self.alias}.yml"
+        )
+        with open(host_cfg_file, "w") as cfg:
+            remote_cfg = copy.deepcopy(env.sos_dict["CONFIG"])
+            remote_cfg["localhost"] = self.alias
             yaml.safe_dump(remote_cfg, cfg)
             cfg.flush()
             # copy the files over
-            self.agent.send_job_file(f'~/.sos/config_{self.alias}.yml', dir='.')
+            self.agent.send_job_file(f"~/.sos/config_{self.alias}.yml", dir=".")
 
         self.local_filename = filename
 
@@ -97,10 +101,10 @@ class WorkflowEngine:
         self.command = self.remove_arg(command, "-r")
         # -c only point to local config file.
         self.command = self.remove_arg(self.command, "-c")
-        self.command += ['-c', f'~/.sos/config_{self.alias}.yml']
+        self.command += ["-c", f"~/.sos/config_{self.alias}.yml"]
         # remove --slave mode because the master cannot reach remote slave
         self.command = self.remove_arg(self.command, "-m")
-        self.command += ['-M', self.job_name]
+        self.command += ["-M", self.job_name]
         # replace absolute path with relative one because remote sos might have
         # a different path.
         if os.path.basename(command[0]) == "sos":
@@ -182,3 +186,188 @@ class BackgroundProcess_WorkflowEngine(WorkflowEngine):
             except Exception as e:
                 env.logger.debug(f"Failed to remove temporary workflow file: {e}")
         return True
+
+class WorkflowPulse:
+    def __init__(self, workflow_id):
+        self.id = workflow_id
+        self._tags = None
+        self._status = None
+        self.pulse_file = os.path.join(
+            os.path.expanduser('~'), '.sos', 'workflows', self.id + '.pulse'
+        )
+
+    def exists(self):
+        return os.path.isfile(self.pulse_file)
+
+    @property
+    def created(self):
+        return 'Created'
+
+    @property
+    def started(self):
+        return 'Started'
+
+    @property
+    def duration(self):
+        return 'NA'
+
+    @property
+    def tags(self):
+        if self._tags is None:
+            self.parse_pulse_file()
+        return self._tags
+
+    @property
+    def status(self):
+        if self._status is None:
+            self.parse_pulse_file()
+        return self._status
+
+    @property
+    def script(self):
+        return ''
+
+    @property
+    def stdout(self):
+        return ''
+
+    @property
+    def stderr(self):
+        return ''
+
+    def parse_pulse_file(self):
+        self._status = 'unknown'
+        self._tags = ''
+        with open(self.pulse_file) as pulse:
+            for line in pulse.readline():
+                if line.startswith('#status:'):
+                    self._status = line.strip()[8:]
+                elif line.startswith('#tags:'):
+                    self._tags = line.strip()[7:]
+
+
+
+def print_workflow_status(
+    workflows,
+    check_all=False,
+    verbosity: int = 1,
+    html: bool = False,
+    numeric_times=False,
+    age=None,
+    tags=None,
+    status=None,
+):
+    import glob
+
+    all_workflows: List = []
+    if check_all:
+        workflows = glob.glob(
+            os.path.join(os.path.expanduser("~"), ".sos", "workflows", "*.pulse")
+        )
+        all_workflows = [
+            (os.path.basename(x)[:-6], os.path.getmtime(x)) for x in workflows
+        ]
+        if not all_workflows:
+            return
+    else:
+        for t in workflows:
+            matched_names = glob.glob(
+                os.path.join(
+                    os.path.expanduser("~"), ".sos", "workflows", f"{t}*.pulse"
+                )
+            )
+            matched = [
+                (os.path.basename(x)[:-6], os.path.getmtime(x)) for x in matched_names
+            ]
+            if not matched:
+                all_workflows.append((t, None))
+            else:
+                all_workflows.extend(matched)
+
+    if age is not None:
+        age = expand_time(age, default_unit="d")
+        if age > 0:
+            all_workflows = [x for x in all_workflows if time.time() - x[1] >= age]
+        else:
+            all_workflows = [x for x in all_workflows if time.time() - x[1] <= -age]
+
+    all_workflows = sorted(
+        list(set(all_workflows)), key=lambda x: 0 if x[1] is None else x[1]
+    )
+
+    if tags:
+        all_workflows = [
+            x
+            for x in all_workflows
+            if WorkflowPulse(x[0]).exists()
+            and any(y in tags for y in WorkflowPulse(x[0]).tags.split())
+        ]
+
+    if not all_workflows:
+        return
+
+    workflow_info = [WorkflowPulse(x[0]) for x in all_workflows]
+    #
+    # automatically remove non-running workflows that are more than 30 days old
+    to_be_removed = [
+        t
+        for s, (t, d) in zip(workflow_info, all_workflows)
+        if d is not None and time.time() - d > 30 * 24 * 60 * 60 and s != "running"
+    ]
+
+    if status:
+        workflow_info = [x for x in workflow_info if x.status in status]
+    #
+    if verbosity == 0:
+        print("\n".join([x.status for x in workflow_info]))
+    elif verbosity == 1:
+        for info in workflow_info:
+            print(f"{info.id}\t{info.status}")
+    elif verbosity == 2:
+        tsize = 20
+        for info in workflow_info:
+            print(f"{info.id}\t{info.tags.ljust(tsize)}\t{info.duration:<14}\t{info.status}")
+    elif verbosity == 3:
+        tsize = 20
+        for info in workflow_info:
+            tsize = max(tsize, len(info.tags))
+            print(f"{info.id}\t{info.tags.ljust(tsize)}\t{info.created:<14}\t{info.started:<14}\t{info.duration:<14}\t{info.status}")
+    elif verbosity == 4:
+        import pprint
+
+        for info in workflow_info:
+            if info.status == "missing":
+                print(f"{info.id}\t{info.status}\n")
+                continue
+            print(f"{info.id}\t{info.status}\n")
+            print(f"{info.created}")
+            if info.started:
+                print(f"{info.started}")
+            if info.duration:
+                print(f"{info.duration}")
+
+            print("TAGS:\n=====")
+            print(info.tags)
+            print()
+
+            if info.script:
+                print("SCRIPT:\n=====")
+                print(info.script)
+
+            if info.stdout:
+                print("STDOUT:")
+                print(info.stdout)
+
+            if info.stderr:
+                print("STDERR:")
+                print(info.stderr)
+
+
+
+    # remove jobs that are older than 1 month
+    if to_be_removed:
+        purge_workflows(to_be_removed, verbosity=0)
+
+
+def purge_workflows(workflows, verbosity=1):
+    return

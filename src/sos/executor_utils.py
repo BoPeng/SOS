@@ -366,7 +366,7 @@ def create_task(global_def, global_vars, task_stmt, task_params):
     )
     # if no output (thus no signature)
     # temporarily create task signature to obtain sig_id
-    task_id = RuntimeInfo(
+    task_id = 't' + RuntimeInfo(
         statementMD5([task_stmt]),
         task_vars["_input"],
         task_vars["_output"],

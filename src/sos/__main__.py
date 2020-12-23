@@ -1554,19 +1554,19 @@ def get_status_parser(desc_only=False):
     if desc_only:
         return parser
     parser.add_argument(
-        "tasks",
+        "jobs",
         nargs="*",
-        help="""ID of the task. All tasks
+        help="""ID of the task. All jobs
         that are releted to the workflow executed under the current directory
         will be checked if unspecified. There is no need to specify compelete
-        task IDs because SoS will match specified name with tasks starting with
+        task IDs because SoS will match specified name with jobs starting with
         these names.""",
     )
     parser.add_argument(
         "-q",
         "--queue",
-        help="""Check the status of job on specified tasks queue or remote host
-        if the tasks . The queue can be defined in global or local sos
+        help="""Check the status of job on specified jobs queue or remote host
+        if the jobs . The queue can be defined in global or local sos
         configuration file, or a file specified by option  --config. A host is
         assumed to be a remote machine with process type if no configuration
         is found.""",
@@ -1588,22 +1588,27 @@ def get_status_parser(desc_only=False):
             information to standard output (default to 2).""",
     )
     parser.add_argument(
+        '-f',
+        '--full',
+        action='store_true',
+        help='''Display full status'''
+    )
+    parser.add_argument(
         "-t",
         "--tags",
         nargs="*",
-        help="""Only list tasks with
+        help="""Only list jobs with
         one of the specified tags.""",
     )
     parser.add_argument(
         "-s",
         "--status",
         nargs="*",
-        help="""Display tasks with
-        one of the specified status.""",
+        help="""Display jobs with one of the specified status.""",
     )
     parser.add_argument(
         "--age",
-        help="""Limit to tasks that are created more than
+        help="""Limit to jobs that are created more than
         (default) or within specified age. Value of this parameter can be in units
         s (second), m (minute), h (hour), or d (day, default), or in the foramt of
         HH:MM:SS, with optional prefix + for older (default) and - for newer than
@@ -1623,15 +1628,32 @@ def get_status_parser(desc_only=False):
 
 def cmd_status(args, workflow_args):
     from .tasks import print_task_status
+    from .workflow_engines import print_workflow_status
     from .utils import env, load_config_files, get_traceback
     from .hosts import Host
+
+    args.tasks = args.jobs if not args.jobs else [x for x in args.jobs if x.startswith('t') or x.startswith('m')]
+    args.workflows = args.jobs if not args.jobs else [x for x in args.jobs if x.startswith('w')]
+
+    if args.full:
+        args.verbosity = 4
 
     try:
         load_config_files(args.config)
         if not args.queue:
             print_task_status(
                 tasks=args.tasks,
-                check_all=not args.tasks,
+                check_all=not args.tasks and not args.workflows,
+                verbosity=args.verbosity,
+                html=args.html,
+                numeric_times=args.numeric_times,
+                age=args.age,
+                tags=args.tags,
+                status=args.status,
+            )
+            print_workflow_status(
+                workflows=args.workflows,
+                check_all=not args.tasks and not args.workflows,
                 verbosity=args.verbosity,
                 html=args.html,
                 numeric_times=args.numeric_times,
@@ -1645,7 +1667,7 @@ def cmd_status(args, workflow_args):
             print(
                 host._task_engine.query_tasks(
                     tasks=args.tasks,
-                    check_all=not args.tasks,
+                    check_all=not args.tasks and not args.workflows,
                     verbosity=args.verbosity,
                     html=args.html,
                     numeric_times=args.numeric_times,
@@ -1653,6 +1675,19 @@ def cmd_status(args, workflow_args):
                     tags=args.tags,
                     status=args.status,
                 )
+            )
+            if host._workflow_engine is not None:
+                print(
+                    host._workflow_engine.query_workflows(
+                        tasks=args.workflows,
+                        check_all=not args.tasks and not args.workflows,
+                        verbosity=args.verbosity,
+                        html=args.html,
+                        numeric_times=args.numeric_times,
+                        age=args.age,
+                        tags=args.tags,
+                        status=args.status,
+                    )
             )
     except Exception as e:
         if args.verbosity and args.verbosity > 2:
@@ -1668,17 +1703,17 @@ def cmd_status(args, workflow_args):
 
 def get_purge_parser(desc_only=False):
     parser = argparse.ArgumentParser(
-        "purge", description="""Remove local or remote tasks"""
+        "purge", description="""Remove local or remote tasks or workflows"""
     )
     if desc_only:
         return parser
     parser.add_argument(
-        "tasks",
+        "jobs",
         nargs="*",
-        help="""ID of the tasks to be removed.
+        help="""ID of the jobs to be removed.
         There is no need to specify compelete task IDs because SoS will match specified
-        name with tasks starting with these names. If no task ID is specified,
-        all tasks related to specified workflows (option -w) will be removed.""",
+        name with jobs starting with these names. If no task ID is specified,
+        all jobs related to specified workflows (option -w) will be removed.""",
     )
     group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument(
@@ -1686,11 +1721,11 @@ def get_purge_parser(desc_only=False):
         "--all",
         action="store_true",
         help="""Clear all task information on local or specified remote task queue,
-        including tasks created by other workflows.""",
+        including jobs created by other workflows.""",
     )
     group.add_argument(
         "--age",
-        help="""Remova all tasks that are created more than
+        help="""Remova all jobs that are created more than
         (default) or within specified age. Value of this parameter can be in units
         s (second), m (minute), h (hour), or d (day, default), or in the foramt of
         HH:MM:SS, with optional prefix + for older (default) and - for newer than
@@ -1700,7 +1735,7 @@ def get_purge_parser(desc_only=False):
         "-s",
         "--status",
         nargs="+",
-        help="""Remove all tasks with specified status, which can be pending,
+        help="""Remove all jobs with specified status, which can be pending,
         submitted, running, completed, failed, and aborted. One of more status
         can be specified.""",
     )
@@ -1708,13 +1743,13 @@ def get_purge_parser(desc_only=False):
         "-t",
         "--tags",
         nargs="*",
-        help="""Remove all tasks that matches one or more specified tags.""",
+        help="""Remove all jobs that matches one or more specified tags.""",
     )
     parser.add_argument(
         "-q",
         "--queue",
-        help="""Remove tasks on specified tasks queue or remote host
-        if the tasks . The queue can be defined in global or local sos
+        help="""Remove jobs on specified jobs queue or remote host
+        if the jobs . The queue can be defined in global or local sos
         configuration file, or a file specified by option  --config. A host is
         assumed to be a remote machine with process type if no configuration
         is found. """,
@@ -1746,13 +1781,13 @@ def cmd_purge(args, workflow_args):
     # from .monitor import summarizeExecution
     env.verbosity = args.verbosity
     try:
-        if not (args.tasks or args.all or args.status or args.tags or args.age):
+        if not (args.jobs or args.all or args.status or args.tags or args.age):
             raise ValueError(
-                "Please specify either IDs of tasks or one or more of options --all, --age, --status, or --tags."
+                "Please specify either IDs of jobs or one or more of options --all, --age, --status, or --tags."
             )
         if not args.queue:
             purge_tasks(
-                args.tasks, args.all, args.age, args.status, args.tags, args.verbosity
+                args.jobs, args.all, args.age, args.status, args.tags, args.verbosity
             )
         else:
             # remote host?
@@ -1760,7 +1795,7 @@ def cmd_purge(args, workflow_args):
             host = Host(args.queue)
             print(
                 host._task_engine.purge_tasks(
-                    args.tasks,
+                    args.jobs,
                     args.all,
                     args.age,
                     args.status,
@@ -1786,23 +1821,23 @@ def get_kill_parser(desc_only=False):
     if desc_only:
         return parser
     parser.add_argument(
-        "tasks",
+        "jobs",
         nargs="*",
-        help="""IDs of the tasks
+        help="""IDs of the jobs
         that will be killed. There is no need to specify compelete task IDs because
-        SoS will match specified name with tasks starting with these names.""",
+        SoS will match specified name with jobs starting with these names.""",
     )
     parser.add_argument(
         "-a",
         "--all",
         action="store_true",
-        help="""Kill all tasks in local or specified remote task queue""",
+        help="""Kill all jobs in local or specified remote task queue""",
     )
     parser.add_argument(
         "-q",
         "--queue",
-        help="""Kill jobs on specified tasks queue or remote host
-        if the tasks . The queue can be defined in global or local sos
+        help="""Kill jobs on specified jobs queue or remote host
+        if the jobs . The queue can be defined in global or local sos
         configuration file, or a file specified by option  --config. A host is
         assumed to be a remote machine with process type if no configuration
         is found.""",
@@ -1811,7 +1846,7 @@ def get_kill_parser(desc_only=False):
         "-t",
         "--tags",
         nargs="*",
-        help="""Only kill tasks with
+        help="""Only kill jobs with
         one of the specified tags.""",
     )
     parser.add_argument(
@@ -1844,29 +1879,29 @@ def cmd_kill(args, workflow_args):
     env.verbosity = args.verbosity
     if not args.queue:
         if args.all:
-            if args.tasks:
+            if args.jobs:
                 env.logger.warning(
                     'Task ids "{}" are ignored with option --all'.format(
-                        " ".join(args.tasks)
+                        " ".join(args.jobs)
                     )
                 )
             if args.tags:
                 env.logger.warning("Option tags is ignored with option --all")
             kill_tasks([])
         else:
-            if not args.tasks and not args.tags:
+            if not args.jobs and not args.tags:
                 env.logger.warning(
                     "Please specify task id, or one of options --all and --tags"
                 )
             else:
-                kill_tasks(tasks=args.tasks, tags=args.tags)
+                kill_tasks(tasks=args.jobs, tags=args.tags)
     else:
         # remote host?
         load_config_files(args.config)
         host = Host(args.queue)
         print(
             host._task_engine.kill_tasks(
-                tasks=args.tasks, tags=args.tags, all_tasks=args.all
+                tasks=args.jobs, tags=args.tags, all_tasks=args.all
             )
         )
 

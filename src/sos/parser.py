@@ -834,7 +834,7 @@ class SoS_Workflow:
             for step in self.sections + self.auxiliary_sections:
                 sig.write(f"{step.step_name()}: {step.md5}\n")
             sig.write(f"{args}\n")
-            return 'WF' + textMD5(sig.getvalue())[:14]
+            return 'w' + textMD5(sig.getvalue())[:16]
 
 class SoS_ScriptContent:
     """A small class to record the script information to be used by nested

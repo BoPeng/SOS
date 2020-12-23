@@ -57,7 +57,7 @@ class TaskParams(object):
 
 class MasterTaskParams(TaskParams):
     def __init__(self, num_workers=None):
-        self.ID = "M_0"
+        self.ID = "m0"
         self.name = self.ID
         self.global_def = ""
         self.task = ""
@@ -212,7 +212,7 @@ class MasterTaskParams(TaskParams):
         self.task_stack.append([task_id, params])
         self.tags = sorted(list(set(self.tags)))
         #
-        self.ID = f"M{len(self.task_stack)}_{self.task_stack[0][0]}"
+        self.ID = f"m{len(self.task_stack)}{self.task_stack[0][0]}"
         self.name = self.ID
 
     def finalize(self):
@@ -1444,7 +1444,7 @@ def print_task_status(
         ]
 
     if not all_tasks:
-        env.logger.info("No matching tasks are identified.")
+        env.logger.debug("No matching tasks are identified.")
         return
 
     raw_status = check_tasks([x[0] for x in all_tasks], check_all)

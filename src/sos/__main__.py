@@ -1864,8 +1864,8 @@ def get_kill_parser(desc_only=False):
     parser.add_argument(
         "-a",
         "--all",
-        nargs='?',
-        const='both',
+        nargs="?",
+        const="both",
         help="""Kill all jobs in local or specified remote task queue. Options
             "--all tasks" and "--all workflows" can be used to kill only tasks
             or workflows.""",
@@ -1914,6 +1914,11 @@ def cmd_kill(args, workflow_args):
     from .utils import env, load_config_files
     from .hosts import Host
 
+    if not args.jobs and not args.tags and not args.all:
+        env.logger.warning(
+            "Please specify job id, or one of options --all and --tags"
+        )
+
     env.verbosity = args.verbosity
     args.tasks = (
         args.jobs if not args.jobs else [x for x in args.jobs if x.startswith("t")]
@@ -1932,31 +1937,29 @@ def cmd_kill(args, workflow_args):
                 )
             if args.tags:
                 env.logger.warning("Option tags is ignored with option --all")
-            if args.all in ('both', 'tasks'):
+            if args.all in ("both", "tasks"):
                 kill_tasks([])
-            if args.all in ('both', 'workflows'):
+            if args.all in ("both", "workflows"):
                 kill_workflows([])
         else:
-            if not args.jobs and not args.tags:
-                env.logger.warning(
-                    "Please specify job id, or one of options --all and --tags"
-                )
-            else:
-                if args.tasks:
-                    kill_tasks(tasks=args.tasks, tags=args.tags)
-                if args.workflows:
-                    kill_workflows(workflows=args.workflows, tags=args.tags)
+            if args.tasks:
+                kill_tasks(tasks=args.tasks, tags=args.tags)
+            if args.workflows:
+                kill_workflows(workflows=args.workflows, tags=args.tags)
     else:
         # remote host?
         load_config_files(args.config)
         host = Host(args.queue)
 
-        res = host._task_engine.kill_tasks(
-            tasks=args.tasks, tags=args.tags, all_tasks=args.all
-        )
-        if res:
-            print(res.strip())
-        if host._workflow_engine:
+        if args.all in ("both", "tasks") or args.tasks or args.tags:
+            res = host._task_engine.kill_tasks(
+                tasks=args.tasks, tags=args.tags, all_tasks=args.all
+            )
+            if res:
+                print(res.strip())
+        if host._workflow_engine and (
+            args.all in ("both", "workflows") or args.workflows or args.tags
+        ):
             res = host._workflow_engine.kill_workflows(
                 workflows=args.workflows, tags=args.tags, all_workflows=args.all
             )

@@ -1863,8 +1863,8 @@ def cmd_purge(args, workflow_args):
                 if res:
                     print(res.strip())
             if host._workflow_engine is not None and (
-                args.workflowss
-                or args.all in ("both", "workflowss")
+                args.workflows
+                or args.all in ("both", "workflows")
                 or args.status
                 or args.tags
                 or args.age

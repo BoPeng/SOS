@@ -1653,33 +1653,8 @@ def cmd_status(args, workflow_args):
     try:
         load_config_files(args.config)
         if not args.queue:
-            if args.all is None or args.all == 'tasks':
+            if args.all is None or args.all == "tasks":
                 print_task_status(
-                tasks=args.tasks,
-                check_all=not args.tasks and not args.workflows,
-                verbosity=args.verbosity,
-                html=args.html,
-                numeric_times=args.numeric_times,
-                age=args.age,
-                tags=args.tags,
-                status=args.status,
-            )
-            if args.all is None or args.all == 'workflows':
-                print_workflow_status(
-                workflows=args.workflows,
-                check_all=not args.tasks and not args.workflows,
-                verbosity=args.verbosity,
-                html=args.html,
-                numeric_times=args.numeric_times,
-                age=args.age,
-                tags=args.tags,
-                status=args.status,
-            )
-        else:
-            # remote host?
-            host = Host(args.queue, start_engine=False)
-            print(
-                host._task_engine.query_tasks(
                     tasks=args.tasks,
                     check_all=not args.tasks and not args.workflows,
                     verbosity=args.verbosity,
@@ -1689,10 +1664,34 @@ def cmd_status(args, workflow_args):
                     tags=args.tags,
                     status=args.status,
                 )
-            )
+            if args.all is None or args.all == "workflows":
+                print_workflow_status(
+                    workflows=args.workflows,
+                    check_all=not args.tasks and not args.workflows,
+                    verbosity=args.verbosity,
+                    html=args.html,
+                    numeric_times=args.numeric_times,
+                    age=args.age,
+                    tags=args.tags,
+                    status=args.status,
+                )
+        else:
+            # remote host?
+            host = Host(args.queue, start_engine=False)
+            res = host._task_engine.query_tasks(
+                    tasks=args.tasks,
+                    check_all=not args.tasks and not args.workflows,
+                    verbosity=args.verbosity,
+                    html=args.html,
+                    numeric_times=args.numeric_times,
+                    age=args.age,
+                    tags=args.tags,
+                    status=args.status,
+                )
+            if res:
+                print(res.strip())
             if host._workflow_engine is not None:
-                print(
-                    host._workflow_engine.query_workflows(
+                res = host._workflow_engine.query_workflows(
                         workflows=args.workflows,
                         check_all=not args.tasks and not args.workflows,
                         verbosity=args.verbosity,
@@ -1702,7 +1701,8 @@ def cmd_status(args, workflow_args):
                         tags=args.tags,
                         status=args.status,
                     )
-                )
+                if res:
+                    print(res.strip())
     except Exception as e:
         if args.verbosity and args.verbosity > 2:
             sys.stderr.write(get_traceback())

@@ -351,6 +351,9 @@ class WorkflowPulse:
         self._status = "unknown"
         self._tags = ""
         last_active_time = None
+        if not os.path.isfile(self.pulse_file):
+            self._status = 'missing'
+            return
         with open(self.pulse_file) as pulse:
             for line in pulse:
                 if line.startswith("#time\t"):

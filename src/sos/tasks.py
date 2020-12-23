@@ -57,7 +57,7 @@ class TaskParams(object):
 
 class MasterTaskParams(TaskParams):
     def __init__(self, num_workers=None):
-        self.ID = "m0"
+        self.ID = "t0"
         self.name = self.ID
         self.global_def = ""
         self.task = ""
@@ -212,7 +212,8 @@ class MasterTaskParams(TaskParams):
         self.task_stack.append([task_id, params])
         self.tags = sorted(list(set(self.tags)))
         #
-        self.ID = f"m{len(self.task_stack)}{self.task_stack[0][0]}"
+        id_prefix = f't{len(self.task_stack)}'
+        self.ID = f"{id_prefix}{self.task_stack[0][0][:-(len(id_prefix))]}"
         self.name = self.ID
 
     def finalize(self):

@@ -1644,7 +1644,7 @@ def cmd_status(args, workflow_args):
     from .utils import env, load_config_files, get_traceback
     from .hosts import Host
 
-    args.tasks = args.jobs if not args.jobs else [x for x in args.jobs if x.startswith('t') or x.startswith('m')]
+    args.tasks = args.jobs if not args.jobs else [x for x in args.jobs if x.startswith('t')]
     args.workflows = args.jobs if not args.jobs else [x for x in args.jobs if x.startswith('w')]
 
     if args.full:
@@ -1835,7 +1835,7 @@ def get_kill_parser(desc_only=False):
     parser.add_argument(
         "jobs",
         nargs="*",
-        help="""IDs of the jobs
+        help="""IDs of the jobs (tasks or workflows)
         that will be killed. There is no need to specify compelete task IDs because
         SoS will match specified name with jobs starting with these names.""",
     )
@@ -1885,10 +1885,14 @@ def get_kill_parser(desc_only=False):
 
 def cmd_kill(args, workflow_args):
     from .tasks import kill_tasks
+    from .workflow_engines import kill_workflows
     from .utils import env, load_config_files
     from .hosts import Host
 
     env.verbosity = args.verbosity
+    args.tasks = args.jobs if not args.jobs else [x for x in args.jobs if x.startswith('t')]
+    args.workflows = args.jobs if not args.jobs else [x for x in args.jobs if x.startswith('w')]
+
     if not args.queue:
         if args.all:
             if args.jobs:
@@ -1900,21 +1904,32 @@ def cmd_kill(args, workflow_args):
             if args.tags:
                 env.logger.warning("Option tags is ignored with option --all")
             kill_tasks([])
+            kill_workflows([])
         else:
             if not args.jobs and not args.tags:
                 env.logger.warning(
-                    "Please specify task id, or one of options --all and --tags"
+                    "Please specify job id, or one of options --all and --tags"
                 )
             else:
-                kill_tasks(tasks=args.jobs, tags=args.tags)
+                if args.tasks:
+                    kill_tasks(tasks=args.tasks, tags=args.tags)
+                if args.workflows:
+                    kill_workflows(workflows=args.workflows, tags=args.tags)
     else:
         # remote host?
         load_config_files(args.config)
         host = Host(args.queue)
+
         print(
             host._task_engine.kill_tasks(
-                tasks=args.jobs, tags=args.tags, all_tasks=args.all
+                tasks=args.tasks, tags=args.tags, all_tasks=args.all
             )
+        )
+        if host._workflow_engine:
+            print(
+                host._workflow_engine.kill_workflows(
+                    tasks=args.workflows, tags=args.tags, all_tasks=args.all
+                )
         )
 
 

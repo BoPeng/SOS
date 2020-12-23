@@ -203,6 +203,10 @@ class WorkflowPulse:
     def exists(self):
         return os.path.isfile(self.pulse_file)
 
+    def mark_killed(self):
+        from stat import S_IREAD
+        os.chmod(self.pulse_file, S_IREAD)
+
     @property
     def created(self):
         return (
@@ -426,6 +430,52 @@ def print_workflow_status(
     if to_be_removed:
         purge_workflows(to_be_removed, verbosity=0)
 
+
+def kill_workflow(workflow):
+    wp = WorkflowPulse(workflow)
+    status = wp.status
+    if status == "completed":
+        return "completed"
+    with open(
+        os.path.join(os.path.expanduser("~"), ".sos", "workflows", workflow + ".soserr"), "a"
+    ) as err:
+        err.write(f"Workflow {workflow} killed by sos kill command or workflow engine.")
+
+    wp.mark_killed()
+    return "aborted"
+
+def kill_workflows(workflows, tags=None):
+    import glob
+
+    if not workflows:
+        workflows = glob.glob(
+            os.path.join(os.path.expanduser("~"), ".sos", "workflows", "*.pulse")
+        )
+        all_workflows = [os.path.basename(x)[:-6] for x in workflows]
+    else:
+        all_workflows = []
+        for t in workflows:
+            matched = glob.glob(
+                os.path.join(os.path.expanduser("~"), ".sos", "workflows", f"{t}*.pulse")
+            )
+            matched = [os.path.basename(x)[:-6] for x in matched]
+            if not matched:
+                env.logger.warning(f"{t} does not match any existing workflow")
+            else:
+                all_workflows.extend(matched)
+    if tags:
+        all_workflows = [
+            x for x in all_workflows if any(x in tags for x in WorkflowPulse(x).tags.split())
+        ]
+
+    if not all_workflows:
+        # env.logger.warning("No workflow to kill")
+        return
+    all_workflows = sorted(list(set(all_workflows)))
+    # at most 20 threads
+    for wf in all_workflows:
+        ret = kill_workflow(wf)
+        print(f"{wf}\t{ret}")
 
 def purge_workflows(workflows, verbosity=1):
     return

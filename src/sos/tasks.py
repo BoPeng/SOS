@@ -1931,7 +1931,7 @@ def kill_tasks(tasks, tags=None):
         ]
 
     if not all_tasks:
-        env.logger.warning("No task to kill")
+        env.logger.debug("No task to kill")
         return
     all_tasks = sorted(list(set(all_tasks)))
     # at most 20 threads

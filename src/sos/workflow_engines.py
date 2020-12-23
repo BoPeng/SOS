@@ -160,7 +160,7 @@ class WorkflowEngine:
             self.agent.config.get("sos", "sos"),
             "" if all_workflows else " ".join(workflows),
             f'--tags {" ".join(tags)}' if tags else "",
-            "-a" if all_workflows else "",
+            "--all workflows" if all_workflows else "",
         )
 
         try:

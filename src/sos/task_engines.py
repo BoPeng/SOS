@@ -663,7 +663,7 @@ class TaskEngine(threading.Thread):
             self.agent.config.get('sos',
                                   'sos'), '' if all_tasks else ' '.join(tasks),
             f'--tags {" ".join(tags)}' if tags else '',
-            '-a' if all_tasks else '')
+            '--all tasks' if all_tasks else '')
 
         try:
             ret = self.agent.check_output(cmd)

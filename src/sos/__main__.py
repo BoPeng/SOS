@@ -1679,7 +1679,20 @@ def cmd_status(args, workflow_args):
             # remote host?
             host = Host(args.queue, start_engine=False)
             res = host._task_engine.query_tasks(
-                    tasks=args.tasks,
+                tasks=args.tasks,
+                check_all=not args.tasks and not args.workflows,
+                verbosity=args.verbosity,
+                html=args.html,
+                numeric_times=args.numeric_times,
+                age=args.age,
+                tags=args.tags,
+                status=args.status,
+            )
+            if res:
+                print(res.strip())
+            if host._workflow_engine is not None:
+                res = host._workflow_engine.query_workflows(
+                    workflows=args.workflows,
                     check_all=not args.tasks and not args.workflows,
                     verbosity=args.verbosity,
                     html=args.html,
@@ -1688,19 +1701,6 @@ def cmd_status(args, workflow_args):
                     tags=args.tags,
                     status=args.status,
                 )
-            if res:
-                print(res.strip())
-            if host._workflow_engine is not None:
-                res = host._workflow_engine.query_workflows(
-                        workflows=args.workflows,
-                        check_all=not args.tasks and not args.workflows,
-                        verbosity=args.verbosity,
-                        html=args.html,
-                        numeric_times=args.numeric_times,
-                        age=args.age,
-                        tags=args.tags,
-                        status=args.status,
-                    )
                 if res:
                     print(res.strip())
     except Exception as e:
@@ -1864,8 +1864,11 @@ def get_kill_parser(desc_only=False):
     parser.add_argument(
         "-a",
         "--all",
-        action="store_true",
-        help="""Kill all jobs in local or specified remote task queue""",
+        nargs='?',
+        const='both',
+        help="""Kill all jobs in local or specified remote task queue. Options
+            "--all tasks" and "--all workflows" can be used to kill only tasks
+            or workflows.""",
     )
     parser.add_argument(
         "-q",
@@ -1929,8 +1932,10 @@ def cmd_kill(args, workflow_args):
                 )
             if args.tags:
                 env.logger.warning("Option tags is ignored with option --all")
-            kill_tasks([])
-            kill_workflows([])
+            if args.all in ('both', 'tasks'):
+                kill_tasks([])
+            if args.all in ('both', 'workflows'):
+                kill_workflows([])
         else:
             if not args.jobs and not args.tags:
                 env.logger.warning(
@@ -1946,17 +1951,17 @@ def cmd_kill(args, workflow_args):
         load_config_files(args.config)
         host = Host(args.queue)
 
-        print(
-            host._task_engine.kill_tasks(
-                tasks=args.tasks, tags=args.tags, all_tasks=args.all
-            )
+        res = host._task_engine.kill_tasks(
+            tasks=args.tasks, tags=args.tags, all_tasks=args.all
         )
+        if res:
+            print(res.strip())
         if host._workflow_engine:
-            print(
-                host._workflow_engine.kill_workflows(
-                    workflows=args.workflows, tags=args.tags, all_tasks=args.all
-                )
+            res = host._workflow_engine.kill_workflows(
+                workflows=args.workflows, tags=args.tags, all_workflows=args.all
             )
+            if res:
+                print(res.strip())
 
 
 #

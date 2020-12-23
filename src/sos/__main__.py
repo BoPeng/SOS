@@ -1790,6 +1790,7 @@ def get_purge_parser(desc_only=False):
 
 def cmd_purge(args, workflow_args):
     from .tasks import purge_tasks
+    from .workflow_engines import purge_workflows
     from .utils import env, load_config_files, get_traceback
     from .hosts import Host
 
@@ -1859,8 +1860,8 @@ def cmd_purge(args, workflow_args):
                     args.tags,
                     args.verbosity,
                 )
-            if res:
-                print(res.strip())
+                if res:
+                    print(res.strip())
             if host._workflow_engine is not None and (
                 args.workflowss
                 or args.all in ("both", "workflowss")

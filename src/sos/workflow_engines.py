@@ -143,6 +143,25 @@ class WorkflowEngine:
             return ""
         return ret
 
+    def purge_workflows(
+        self, workflows, purge_all=False, age=None, status=None, tags=None, verbosity=2
+    ):
+        try:
+            return self.agent.check_output(
+                "{} purge {} {} {} {} {} -v {}".format(
+                    self.agent.config.get("sos", "sos"),
+                    " ".join(workflows),
+                    "--all" if purge_all else "",
+                    f"--age {age}" if age is not None else "",
+                    f'--status {" ".join(status)}' if status is not None else "",
+                    f'--tags {" ".join(tags)}' if tags is not None else "",
+                    verbosity,
+                )
+            )
+        except subprocess.CalledProcessError:
+            env.logger.error(f"Failed to purge workflows {workflows}")
+            return ""
+
 
 class BackgroundProcess_WorkflowEngine(WorkflowEngine):
     def __init__(self, agent):

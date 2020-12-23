@@ -1733,7 +1733,8 @@ def get_purge_parser(desc_only=False):
     group.add_argument(
         "-a",
         "--all",
-        action="store_true",
+        nargs="?",
+        const="both",
         help="""Clear all task information on local or specified remote task queue,
         including jobs created by other workflows.""",
     )
@@ -1808,15 +1809,14 @@ def cmd_purge(args, workflow_args):
                 "Please specify either IDs of jobs or one or more of options --all, --age, --status, or --tags."
             )
         if not args.queue:
-            purge_tasks(
-                args.jobs, args.all, args.age, args.status, args.tags, args.verbosity
-            )
-        else:
-            # remote host?
-            load_config_files(args.config)
-            host = Host(args.queue)
-            print(
-                host._task_engine.purge_tasks(
+            if (
+                args.tasks
+                or args.all in ("both", "tasks")
+                or args.status
+                or args.tags
+                or args.age
+            ):
+                purge_tasks(
                     args.tasks,
                     args.all,
                     args.age,
@@ -1824,18 +1824,60 @@ def cmd_purge(args, workflow_args):
                     args.tags,
                     args.verbosity,
                 )
-            )
-            if host._workflow_engine is not None:
-                print(
-                    host._workflow_engine.purge_workflows(
-                        args.workflows,
-                        args.all,
-                        args.age,
-                        args.status,
-                        args.tags,
-                        args.verbosity,
-                    )
+            if (
+                args.workflows
+                or args.all in ("both", "workflows")
+                or args.status
+                or args.tags
+                or args.age
+            ):
+                purge_workflows(
+                    args.workflows,
+                    args.all,
+                    args.age,
+                    args.status,
+                    args.tags,
+                    args.verbosity,
                 )
+        else:
+            # remote host?
+            load_config_files(args.config)
+            host = Host(args.queue)
+
+            if (
+                args.tasks
+                or args.all in ("both", "tasks")
+                or args.status
+                or args.tags
+                or args.age
+            ):
+                res = host._task_engine.purge_tasks(
+                    args.tasks,
+                    args.all,
+                    args.age,
+                    args.status,
+                    args.tags,
+                    args.verbosity,
+                )
+            if res:
+                print(res.strip())
+            if host._workflow_engine is not None and (
+                args.workflowss
+                or args.all in ("both", "workflowss")
+                or args.status
+                or args.tags
+                or args.age
+            ):
+                res = host._workflow_engine.purge_workflows(
+                    args.workflows,
+                    args.all,
+                    args.age,
+                    args.status,
+                    args.tags,
+                    args.verbosity,
+                )
+                if res:
+                    print(res.strip())
 
     except Exception as e:
         if args.verbosity and args.verbosity > 2:
@@ -1915,9 +1957,7 @@ def cmd_kill(args, workflow_args):
     from .hosts import Host
 
     if not args.jobs and not args.tags and not args.all:
-        env.logger.warning(
-            "Please specify job id, or one of options --all and --tags"
-        )
+        env.logger.warning("Please specify job id, or one of options --all and --tags")
 
     env.verbosity = args.verbosity
     args.tasks = (

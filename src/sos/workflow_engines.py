@@ -123,6 +123,37 @@ class WorkflowEngine:
         env.log_to_file("WORKFLOW", f"Execute command on remote host: {self.command}")
         return True
 
+    def query_workflows(
+        self,
+        workflows=None,
+        check_all=False,
+        verbosity=1,
+        html=False,
+        numeric_times=False,
+        age=None,
+        tags=None,
+        status=None,
+    ):
+        try:
+            return self.agent.check_output(
+                "{} status {} -v {} {} {} {} {} {}".format(
+                    self.agent.config.get("sos", "sos"),
+                    "" if workflows is None else " ".join(workflows),
+                    verbosity,
+                    "--html" if html else "",
+                    "--numeric-times" if numeric_times else "",
+                    f"--age {age}" if age else "",
+                    f'--tags {" ".join(tags)}' if tags else "",
+                    f'--status {" ".join(status)}' if status else "",
+                )
+            )
+        except subprocess.CalledProcessError as e:
+            if verbosity >= 3:
+                env.logger.warning(
+                    f'Failed to query status of workflows on {self.alias}: {"" if e.stderr is None else e.stderr.decode()}'
+                )
+            return ""
+
     def kill_workflows(self, workflows, tags=None, all_workflows=False):
         cmd = "{} kill {} {} {}".format(
             self.agent.config.get("sos", "sos"),

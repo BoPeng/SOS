@@ -9,7 +9,7 @@ import time
 
 
 from .eval import cfg_interpolate
-from .utils import env, textMD5, expand_time
+from .utils import env, textMD5, expand_time, format_duration
 
 
 class WorkflowEngine:
@@ -187,13 +187,17 @@ class BackgroundProcess_WorkflowEngine(WorkflowEngine):
                 env.logger.debug(f"Failed to remove temporary workflow file: {e}")
         return True
 
+
 class WorkflowPulse:
     def __init__(self, workflow_id):
         self.id = workflow_id
         self._tags = None
         self._status = None
+        self._content = {}
+        self._start_time = None
+        self._complete_time = None
         self.pulse_file = os.path.join(
-            os.path.expanduser('~'), '.sos', 'workflows', self.id + '.pulse'
+            os.path.expanduser("~"), ".sos", "workflows", self.id + ".pulse"
         )
 
     def exists(self):
@@ -201,15 +205,25 @@ class WorkflowPulse:
 
     @property
     def created(self):
-        return 'Created'
+        return (
+            "Created " + format_duration(time.time() - self._start_time, True) + " ago"
+            if self._start_time
+            else ""
+        )
 
     @property
     def started(self):
-        return 'Started'
+        return (
+            "Started " + format_duration(time.time() - self._start_time, True) + " ago"
+            if self._start_time
+            else ""
+        )
 
     @property
     def duration(self):
-        return 'NA'
+        if not self._complete_time:
+            return ""
+        return "Ran for " + format_duration(int(self._complete_time - self._start_time))
 
     @property
     def tags(self):
@@ -223,28 +237,64 @@ class WorkflowPulse:
             self.parse_pulse_file()
         return self._status
 
+    def get_file(self, ext):
+        if ext in self._content:
+            return self._content[ext]
+
+        res_file = os.path.join(
+            os.path.expanduser("~"), ".sos", "workflows", self.id + ext
+        )
+        content = ""
+        if os.path.isfile(res_file):
+            try:
+                with open(res_file) as res:
+                    content = res.read()
+            except:
+                pass
+        self._content[ext] = content
+        return content
+
     @property
     def script(self):
-        return ''
+        return self.get_file(".sos")
 
     @property
     def stdout(self):
-        return ''
+        return self.get_file(".out")
 
     @property
     def stderr(self):
-        return ''
+        return self.get_file(".err")
+
+    @property
+    def sh_script(self):
+        return self.get_file(".sh")
 
     def parse_pulse_file(self):
-        self._status = 'unknown'
-        self._tags = ''
+        self._status = "unknown"
+        self._tags = ""
         with open(self.pulse_file) as pulse:
-            for line in pulse.readline():
-                if line.startswith('#status:'):
-                    self._status = line.strip()[8:]
-                elif line.startswith('#tags:'):
-                    self._tags = line.strip()[7:]
-
+            for line in pulse:
+                if not line.startswith("#") or line.startswith("#time\t"):
+                    continue
+                fields = line.split("\t")
+                if len(fields) != 3:
+                    env.logger.error(line)
+                    continue
+                if fields[1] == "status":
+                    self._status = fields[2].strip()
+                    if self._status == "running":
+                        try:
+                            self._start_time = float(fields[0][1:])
+                        except:
+                            pass
+                    elif self._status == "completed":
+                        try:
+                            self._complete_time = float(fields[0][1:])
+                        except:
+                            pass
+                elif fields[1] == "tags":
+                    self._tags = fields[2].strip()
 
 
 def print_workflow_status(
@@ -326,12 +376,16 @@ def print_workflow_status(
     elif verbosity == 2:
         tsize = 20
         for info in workflow_info:
-            print(f"{info.id}\t{info.tags.ljust(tsize)}\t{info.duration:<14}\t{info.status}")
+            print(
+                f"{info.id}\t{info.tags.ljust(tsize)}\t{info.duration:<14}\t{info.status}"
+            )
     elif verbosity == 3:
         tsize = 20
         for info in workflow_info:
             tsize = max(tsize, len(info.tags))
-            print(f"{info.id}\t{info.tags.ljust(tsize)}\t{info.created:<14}\t{info.started:<14}\t{info.duration:<14}\t{info.status}")
+            print(
+                f"{info.id}\t{info.tags.ljust(tsize)}\t{info.created:<14}\t{info.started:<14}\t{info.duration:<14}\t{info.status}"
+            )
     elif verbosity == 4:
         import pprint
 
@@ -339,30 +393,34 @@ def print_workflow_status(
             if info.status == "missing":
                 print(f"{info.id}\t{info.status}\n")
                 continue
-            print(f"{info.id}\t{info.status}\n")
+            print(f"WORKFLOW:\t{info.id}")
+            print(f"status\t{info.status}")
             print(f"{info.created}")
             if info.started:
                 print(f"{info.started}")
             if info.duration:
                 print(f"{info.duration}")
 
+            print()
             print("TAGS:\n=====")
             print(info.tags)
             print()
 
             if info.script:
-                print("SCRIPT:\n=====")
+                print("CRIPT:\n=====")
                 print(info.script)
 
+            if info.sh_script:
+                print("WRAPPER SCRIPT:\n==============")
+                print(info.sh_script)
+
             if info.stdout:
-                print("STDOUT:")
+                print("STDOUT:\n=======")
                 print(info.stdout)
 
             if info.stderr:
-                print("STDERR:")
+                print("STDERR:\n=======")
                 print(info.stderr)
-
-
 
     # remove jobs that are older than 1 month
     if to_be_removed:

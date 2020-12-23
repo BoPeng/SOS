@@ -209,6 +209,12 @@ class WorkflowMonitor(threading.Thread):
         p = psutil.Process(self.pid)
         p.kill()
 
+    def write(self, msg):
+        with open(self.pulse_file, "a") as pd:
+            pd.write(
+                f"#{time.time()}\t{msg}\n"
+            )
+
     def run(self):
         counter = 0
         start_time = time.time()

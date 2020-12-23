@@ -672,6 +672,8 @@ def cmd_run(args, workflow_args):
                 resource_monitor_interval=60
             )
             m.start()
+            m.write('status\trunning')
+            m.write(f'tags\t{args.script}')
 
         executor = Base_Executor(workflow, args=workflow_args, config=config)
         # start controller
@@ -687,10 +689,20 @@ def cmd_run(args, workflow_args):
                 f"Execution profile of master process {os.getpid()} is saved to {pr_file}"
             )
     except Exception as e:
+        if args.monitor_id:
+            try:
+                m.write('status\tfailed')
+            except Exception as e:
+                env.logger.debug(f'Failed to report to monitor process: {e}')
         if args.verbosity and args.verbosity > 2:
             sys.stderr.write(get_traceback())
         env.logger.error(str(e))
         sys.exit(1)
+    if args.monitor_id:
+        try:
+            m.write('status\tcompleted')
+        except Exception as e:
+            env.logger.debug(f'Failed to report to monitor process: {e}')
 
 
 

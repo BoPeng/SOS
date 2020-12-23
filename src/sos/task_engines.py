@@ -160,6 +160,8 @@ class TaskEngine(threading.Thread):
                 try:
                     # return creation time, start time, and duration
                     tid, tags, ct, st, dr, tst = line.split('\t')
+                    if tid.startswith('w'):
+                        continue
                     # for some reason on windows there can be a \r at the end
                     self.task_status[tid] = tst.strip()
                     self.task_info[tid]['date'] = [

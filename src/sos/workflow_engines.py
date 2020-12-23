@@ -373,7 +373,7 @@ class WorkflowPulse:
                 elif fields[1] == "tags":
                     self._tags = fields[2].strip()
         if not os.stat(self.pulse_file).st_mode & stat.S_IWUSR:
-            self._status == 'aborted'
+            self._status = 'aborted'
 
 
 def print_workflow_status(

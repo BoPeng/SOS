@@ -4,6 +4,7 @@
 # Distributed under the terms of the 3-clause BSD License.
 import copy
 import os
+import stat
 import subprocess
 import time
 
@@ -371,6 +372,8 @@ class WorkflowPulse:
                             pass
                 elif fields[1] == "tags":
                     self._tags = fields[2].strip()
+        if not os.stat(self.pulse_file).st_mode & stat.S_IWUSR:
+            self._status == 'aborted'
 
 
 def print_workflow_status(

@@ -59,6 +59,9 @@ if you have helped fixing bugs or making improvements to the source code. In add
 
 ### Change Log of SoS Workflow and SoS Notebook
 
+SoS 0.22.5:
+* [sos#1420](https://github.com/vatlab/sos/issues/1420): Allow checking the status, killing, and purge of remote workflows.
+
 SoS Notebook 0.22.3
 * [sos-notebook#303](https://github.com/vatlab/sos-notebook/issues/303): Make task execution non-blocking in sos notebook, so that the buttons to check status and remove tasks actually operatable.
 

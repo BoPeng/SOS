@@ -813,6 +813,7 @@ def cmd_dryrun(args, workflow_args):
     args.__max_running_jobs__ = 1
     args.dryrun = True
     args.__remote__ = None
+    args.monitor_id = None
     args.exec_mode = None
     args.__error_mode__ = "default"
     cmd_run(args, workflow_args)

@@ -1687,19 +1687,31 @@ def cmd_status(args, workflow_args):
         else:
             # remote host?
             host = Host(args.queue, start_engine=False)
-            res = host._task_engine.query_tasks(
-                tasks=args.tasks,
-                check_all=not args.tasks and not args.workflows,
-                verbosity=args.verbosity,
-                html=args.html,
-                numeric_times=args.numeric_times,
-                age=args.age,
-                tags=args.tags,
-                status=args.status,
-            )
-            if res:
-                print(res.strip())
-            if host._workflow_engine is not None:
+            if args.tasks or (
+                not args.tasks
+                and not args.workflows
+                and (args.all is None or args.all in ("tasks", "both"))
+            ):
+                res = host._task_engine.query_tasks(
+                    tasks=args.tasks,
+                    check_all=not args.tasks and not args.workflows,
+                    verbosity=args.verbosity,
+                    html=args.html,
+                    numeric_times=args.numeric_times,
+                    age=args.age,
+                    tags=args.tags,
+                    status=args.status,
+                )
+                if res:
+                    print(res.strip())
+            if host._workflow_engine is not None and (
+                args.workflows
+                or (
+                    not args.tasks
+                    and not args.workflows
+                    and (args.all is None or args.all in ("workflows", "both"))
+                )
+            ):
                 res = host._workflow_engine.query_workflows(
                     workflows=args.workflows,
                     check_all=not args.tasks and not args.workflows,

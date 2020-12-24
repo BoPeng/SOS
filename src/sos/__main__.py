@@ -1589,7 +1589,7 @@ def get_status_parser(desc_only=False):
         help="""A configuration file with host
         definitions, in case the definitions are not defined in global sos config.yml files.""",
     )
-    parser.add_argument("-a", "--all", nargs='?', const='both', help=argparse.SUPPRESS)
+    parser.add_argument("-a", "--all", nargs="?", const="both", help=argparse.SUPPRESS)
     parser.add_argument(
         "-v",
         dest="verbosity",
@@ -1654,10 +1654,14 @@ def cmd_status(args, workflow_args):
     try:
         load_config_files(args.config)
         if not args.queue:
-            if args.all is None or args.all == "tasks":
+            if args.tasks or (
+                not args.tasks
+                and not args.workflows
+                and (args.all is None or args.all in ("tasks", "both"))
+            ):
                 print_task_status(
                     tasks=args.tasks,
-                    check_all=not args.tasks and not args.workflows,
+                    check_all=args.all in ("tasks", "both") or not args.tasks,
                     verbosity=args.verbosity,
                     html=args.html,
                     numeric_times=args.numeric_times,
@@ -1665,10 +1669,14 @@ def cmd_status(args, workflow_args):
                     tags=args.tags,
                     status=args.status,
                 )
-            if args.all is None or args.all == "workflows":
+            if args.workflows or (
+                not args.tasks
+                and not args.workflows
+                and (args.all is None or args.all in ("workflows", "both"))
+            ):
                 print_workflow_status(
                     workflows=args.workflows,
-                    check_all=not args.tasks and not args.workflows,
+                    check_all=args.all in ("workflows", "both") or not args.workflows,
                     verbosity=args.verbosity,
                     html=args.html,
                     numeric_times=args.numeric_times,
